@@ -1,7 +1,15 @@
 /*
+               -------------------
+ ------=======|  NIGHTSTICK CODE  |=======-------
+               -------------------
+           ---=={ Version 0.1.5 }==--- 
+                by Marlon Graeber
+                aka "Loaded Dice"
+           
   IDE used Arduino 1.8.19
   Board: Seeed Studio XIAO nRF52840 BLE Sense
   Core: Seeed Studio nRF52 Boards v1.1.1 (Not the mbed -enabled core!)
+        https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json
 
   Board specs:
   Procesor: Nordic nRF52840 - ARM® Cortex®-M4 with FPU run up to 64 MHz
@@ -16,7 +24,6 @@
   Standby power consumption:  <5μA
 
 
-  
   Button voltage divider level is max 3v3 regulated (not battery voltage) 
   
   Can't programm the XIAO nRf52?
@@ -110,10 +117,7 @@ To do:
   3D case design improvements
     - improved battery holder
  
-               -------------------
- ------=======|  NIGHTSTICK CODE  |=======-------
-               -------------------
-   ---=={ Current Setup for this sketch }==--- 
+
 
         Pinout:
                       ______
