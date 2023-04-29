@@ -48,16 +48,17 @@ You should have received a copy of the GNU Lesser General Public License along w
 To do:
 
   New Featues to implement:
-    - long button tap (button 1 or 3) -> change folder
-    - short button tap  (button 1 or 3) -> change bitmap
-    - short button tap (center button) cycle through  battery state display mode / tilt stick - brightness control mode 
-    - long button tap  (center button) activate bluetooth (play stick animation) (very long tap = BT/BLE pairing mode)
+    
     - PDM Microphone --> soundlevel detection or FFT + overlay animations
     - make compatible android app and / or lilygo smartwatch code to communicate via BLE with the stick, change settings, lookup battery status....
   
-  
-  
   Improvements & next steps:
+  
+    - complete input detection & hander routine
+        - long button tap (button 1 or 3) -> change folder
+        - short button tap  (button 1 or 3) -> change bitmap
+        - short button tap (center button) cycle through  battery state display mode / tilt stick - brightness control mode 
+        - long button tap  (center button) activate bluetooth (play stick animation) (very long tap = BT/BLE pairing mode)
     - errors should result in error codes and corresponding messages --> char* getErrMsg(error_code) & internal led blink codes (system tab)
       also add boolean to choose if the error should blink forever (Stop the script) or is one time
       (error messages can get stored in a progmem char array later)
@@ -79,7 +80,7 @@ To do:
     - load and test the trail bitmaps ( 1 degree per pixel )
     - when bmp file & folder --> "-" or "" i n config file (no file or folder selected) load 1st .bmp from first folder when bmp mode is activated.
     - implemet deep sleep for µC or idle animation when not played (make this selectable in config )
-    - Get rid of the last String type used in this code and replace it with a char array (StringBuf at blelMsgHandler())
+
 
 
 next version main PCB:
