@@ -98,7 +98,13 @@ bool isWord(char* str){
 void cArrToLower(char* str) { cArrChangeCase(str,false);}
 void cArrToUpper(char* str) { cArrChangeCase(str,true); }
 bool cArrStartsWith(char* str, char chk){return (str[0] == chk);}
-bool cArrEndsWith(char* str, char chk){return (str[strlen(str)] == chk);}
+bool cArrEndsWith(char* str, char chk){return (str[strlen(str)-1] == chk);}
+void cArrTrim(char* str){
+ while( cArrEndsWith(str, ' ') || cArrEndsWith(str, '\t') || cArrStartsWith(str, ' ') || cArrStartsWith(str, '\t')){
+  if( cArrEndsWith(str, ' ') || cArrEndsWith(str, '\t')){cArrTrimRight(str);}
+  if( cArrStartsWith(str, ' ') || cArrStartsWith(str, '\t')){cArrTrimLeft(str);}
+ }
+}
 void cArrTrimLeft(char* str){  uint16_t cArrLen = strlen(str); strcpy(str, &str[1]); str[cArrLen-1] = '\0'; } 
 
 void cArrTrimRight(char* str){ str[strlen(str)-1] = '\0';}

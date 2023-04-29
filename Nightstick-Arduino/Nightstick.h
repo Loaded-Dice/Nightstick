@@ -76,7 +76,7 @@ uint8_t gCurrentPatternNumber = 0;
 #define BLE_FAST_TIMEOUT  30
 #define BLE_TIMEOUT       60
 #define TERM_CHAR         '\n'
-#define BLE_BUFSIZE       50
+#define BLE_BUFSIZE       150
 BLEDis  bledis;  // device information
 BLEUart bleuart; // uart over ble
 BLEBas  blebas;  // battery service
@@ -86,8 +86,8 @@ BLEBas  blebas;  // battery service
 uint8_t bleMode = BLE_OFF;
 
 //---==={VARIABLES - BLE_COM}===---//
-char bleBuf[BLE_BUFSIZE];
-String stringBuf = "";
+char comBufIn[BLE_BUFSIZE];
+char comBufOut[BLE_BUFSIZE];
 bool newBleData =false;
 bool newSerialData =false;
 

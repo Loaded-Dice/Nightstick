@@ -132,8 +132,6 @@ void setup(){
 void loop(){ // all main functions have timining structures integrated
   main_FILTER_IMU();
   main_LEDs();
-  // if(Bluefruit.connected() > 0){ readBLE();}
-  // if(newBleData){blelMsgHandler();}
-  // checkForSerial();
-  // serialHandler();
+  main_BLE_COM();
+
 }
