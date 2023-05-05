@@ -1,7 +1,7 @@
 
 void setup_LEDs(){
   strip.begin();
-  strip.setBrightness(BRIGHTNESS);
+  strip.setBrightness(cfg.bright);
   strip.show(); // Initialize all pixels to 'off'
 }
 void main_LEDs(){
@@ -11,6 +11,8 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
  if(ledMode == LED_OFF && ledModeLast != ledMode){ledsClear();ledsClear();ledsClear();}
 
    EVERY_N_MILLIS(DELAYMS_SHOWLED) {
+    gHue++;
+    //if(ledMode != ledModeLast && ledMode == LED_BMP){chkBmpLoaded();};
     switch (ledMode) {
       case LED_BMP:   break;
       case LED_FIRE: make_fire();  break;
@@ -18,7 +20,7 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
       case LED_BRIGHT:  break;
       case LED_ANI:  break;
       case LED_BLE:  break;
-      case LED_TEST:  break;
+      case LED_TEST: rainbow(); break;
       default:  break; 
     }
   ledsShow();
@@ -40,7 +42,50 @@ void mirrorStick(){
   }
 }
 
+//void chkBmpLoaded(){
+//  
+//  
+//  if(strcmp(cfg.currentBmp,"") == 0 || strcmp(cfg.currentBmp,"-") == 0 || strcmp(cfg.currentFolder,"") == 0 || strcmp(cfg.currentFolder,"-") == 0){//search for first bmp - open nextFile until path != dir 
+//
+//    } 
+//  if(strcmp(cfg.currentFolder,"") == 0 || strcmp(cfg.currentFolder,"-") == 0){;} 
+//  strcmp
+//}
+//
+//
+//
+//void loadFirstValid(){
+//  bool errBmp = false;
+//  File32 path;
+//  charBuff[0] = '\0';
+//  strcpy(charBuff,MAINPATH);
+//  strcat(charBuff,"/BMPs");
+//  if(!sd.exists(charBuff)){errBmp = true;} // throw error!
+//  else{
+//  path.open(path, FILE_READ);
+//  
+//  cfg.currentFolder[0] = '\0';
+//  cfg.currentBmp[0] = '\0';
+//  
+//  while(true){
+//    File32 entry =  path.openNextFile();
+//    if (! entry) {errBmp = true; break; }
+//    charBuff[0] = '\0';
+//    if (entry.isDir()) {
+//      entry.getName(charBuff,sizeof(charBuff)); 
+//      
+//      strcat(cfg.currentFolder,"/");
+//      strcat(cfg.currentFolder,charBuff);
+//      }
+//  
+//  }
+//  }
+//  // handle error 
+//}
 
+
+void rainbow() { fill_rainbow(leds, NUM_LEDS, gHue, 7); }// FastLED's built-in rainbow generator.
+  
 
 
 

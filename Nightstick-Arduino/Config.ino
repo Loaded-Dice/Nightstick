@@ -2,10 +2,42 @@ void setup_Config(){ // try to find the config file on the SD card and read the 
   
   charBuff[0]='\0'; // clear buffer
   strcpy(charBuff,MAINPATH);
+  chkOrMkDir(charBuff); // check if mainpath /Nightstick exists and create if missing
+  strcat(charBuff,SUBFLD_BMP);
+  chkOrMkDir(charBuff); // check if subfolder Nightstick/BMPs exists and create if missing
+  strcat(charBuff,SUBFLD_TRAIL);
+  chkOrMkDir(charBuff); // check if subfolder Nightstick/BMPs/trails exists and create if missing
+  cArrTrimRight(charBuff,strlen(SUBFLD_TRAIL));
+  strcat(charBuff,SUBFLD_STATIC); // check if subfolder Nightstick/BMPs/static exists and create if missing
+  chkOrMkDir(charBuff);
+  
+  charBuff[0]='\0'; // clear buffer
+  strcpy(charBuff,MAINPATH);
   strcat(charBuff,"/");
   strcat(charBuff,CONFIGNAME);
     if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){readCfg(); return;}
     else { writeCfg(); }
+}
+
+int8_t chkOrMkDir(char*  chkpath){
+  if(strcmp(chkpath,"/") == 0 ){return 0;} // can't create root folder
+  if(chkpath[0] == '/'){cArrTrimLeft(chkpath);} // remove first slash
+
+  int8_t result = 0;
+      if (sd.exists(chkpath)){result =  1;} // if "/subPathName" exists return 0
+      else{
+        if (sd.mkdir(chkpath)) {result =  2; delay(300);}  // remove leading "/" and create "subPathName" folder - on success return 1
+        else {result =   -1;} // return -2 if faild to create subfolder
+      }
+  if(DEBUG){
+    switch(result){
+      case -1:  Serial.print("Error: Failed to create: "); Serial.println(chkpath); break;
+      case  1:  Serial.print("OK: SubFolder found: "); Serial.println(chkpath); break;
+      case  2:  Serial.print("OK: Successfully created: "); Serial.println(chkpath); break;
+      default:  Serial.println("Error: Something unknown went wrong while checking / creating folder");
+    }
+  }
+  return result;
 }
 
 void readCfg(){
@@ -47,15 +79,15 @@ bool parseLine(char* buff, uint16_t lineLen) {
     //    bool isWord(char *))  on success variable is available via the char * array given to the function
     // To do: store all vonverted types in a common byte array buffer and make a type conversion when assinging the value to the corresponding variable
 
-           if( entryIdx == CFG_START   &&  token == NULL){msg("Start Config ok");}
-      else if( entryIdx == CFG_BLENAME &&  isWord(token)){cfg.bleName[0] =  '\0';  strncpy(cfg.bleName ,token, sizeof(cfg.bleName)); msg("BLE Name OK");}
-      else if( entryIdx == CFG_BRIGHT  &&  isByte(token)){cfg.bright = convByte; msg("Brightness ok");}
-      else if( entryIdx == CFG_BMPFILE &&  isWord(token)){cfg.currentBmp[0] =  '\0';    strncpy(cfg.currentBmp   ,token ,sizeof(cfg.currentBmp));msg("Bmp File ok but existance not checked yet");}
-      else if( entryIdx == CFG_FOLDER  &&  isWord(token)){cfg.currentFolder[0] =  '\0'; strncpy(cfg.currentFolder ,token ,sizeof(cfg.currentFolder));msg("Bmp Folder Ok but existance not checked yet");}
-      else if( entryIdx == CFG_ANI     &&  isByte(token)){cfg.ledAni = convByte;msg("Animation OK");}
-      else if( entryIdx == CFG_PALETTE &&  isByte(token)){cfg.palette = convByte;msg("Colorpalette ok");}
-      else if( entryIdx == CFG_LEDMODE &&  isByte(token)){cfg.ledMode = convByte;msg("LED Mode OK");}
-      else if( entryIdx == CFG_ENDE    &&  token == NULL){msg("End Config file ok");}
+           if( entryIdx == CFG_START   &&  token == NULL){msgln("Start Config ok");}
+      else if( entryIdx == CFG_BLENAME &&  isWord(token)){cfg.bleName[0] =  '\0';  strncpy(cfg.bleName ,token, sizeof(cfg.bleName)); msgln("BLE Name OK");}
+      else if( entryIdx == CFG_BRIGHT  &&  isByte(token)){cfg.bright = convByte; msgln("Brightness ok");}
+      else if( entryIdx == CFG_BMPFILE &&  isWord(token)){cfg.currentBmp[0] =  '\0';    strncpy(cfg.currentBmp   ,token ,sizeof(cfg.currentBmp));msgln("Bmp File ok but existance not checked yet");}
+      else if( entryIdx == CFG_FOLDER  &&  isWord(token)){cfg.currentFolder[0] =  '\0'; strncpy(cfg.currentFolder ,token ,sizeof(cfg.currentFolder));msgln("Bmp Folder Ok but existance not checked yet");}
+      else if( entryIdx == CFG_ANI     &&  isByte(token)){cfg.ledAni = convByte;msgln("Animation OK");}
+      else if( entryIdx == CFG_PALETTE &&  isByte(token)){cfg.palette = convByte;msgln("Colorpalette ok");}
+      else if( entryIdx == CFG_LEDMODE &&  isByte(token)){cfg.ledMode = convByte;msgln("LED Mode OK");}
+      else if( entryIdx == CFG_ENDE    &&  token == NULL){msgln("End Config file ok");}
       else {return false;}
       return true;
 
@@ -70,7 +102,7 @@ int16_t findProperty(char* str){
 }
 
 // load the indexed entry of cfgEntryArray[] from progmem into  the cfgEntry buffer to compare the values
-void getCfgInfo(uint8_t index){ memcpy_P(&cfgEntry, &cfgEntryArray[index], sizeof(cfgEntry));} 
+void getCfgInfo(uint8_t index){ if(index < cfgInfoCount){ memcpy_P(&cfgEntry, &cfgEntryArray[index], sizeof(cfgEntry));}}
 
 void writeCfg(){
   msgln("Writing new config file");

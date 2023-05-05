@@ -23,8 +23,9 @@
   Input voltage (VIN): 5V
   Standby power consumption:  <5μA
 
-
+  never set VBAT_ENABLE to high - keep it always low!
   Button voltage divider level is max 3v3 regulated (not battery voltage) 
+  Lowest voltage before BLM Charging module cutts off = 2.6V
   
   Can't programm the XIAO nRf52?
 
@@ -78,37 +79,33 @@ To do:
         - short button tap  (button 1 or 3) -> change bitmap
         - short button tap (center button) cycle through  battery state display mode / tilt stick - brightness control mode 
         - long button tap  (center button) activate bluetooth (play stick animation) (very long tap = BT/BLE pairing mode)
-    - errors should result in error codes and corresponding messages --> char* getErrMsg(error_code) & internal led blink codes (system tab)
-      also add boolean to choose if the error should blink forever (Stop the script) or is one time
-      (error messages can get stored in a progmem char array later)
       also create an MAINPATH/System/error_log.txt file with  millis() timestamp and error message
       also on bootup search for the error_log.txt and print to serial via msg() and msgln()
     - config struct should control controls main stick states (switch variables like  BRIGHTNESS to cfg.bright and so on)
-    - on startup read all folders and bitmap files in MAINPATH/BMPs/ and for each folder create a text file here: MAINPATH/System/BMPs/folder_name.txt 
+    - (on startup read all folders and bitmap files in MAINPATH/BMPs/ and for each folder create a text file here: MAINPATH/System/BMPs/folder_name.txt)
       each text doument contains a list of all bitmap files that are loadable (right size). so the document serves like a lookup table what file/folder is next/pervious (sdFat fgets())
       create/clear MAINPATH/System/BMPs folder on startup
     - Store contents of the Readme.txt file in progmem and write it to sd card if the file is not present or file size is different
     - when SD card is empty create folder structre and Files: MAINPATH, MAINPATH/BMPs, MAINPATH/System, MAINPATH/readme.txt, MAINPATH/config.csv (config done!) ...
     - implement the use of colorpalettes from FastLed
-    - implement battery voltage read function & check values with laboratory power supply
     - implement battery low animation 
     - in Led2Pixel() uint16_t ledPixelPos[NUM_LEDS][n]; where n=0 --> bmp x pos n=1 --> bmp y pos for each led
       currently ledPixelPos is rounded to thethe next whole pixel - instead of rounding directly multiply x&y floats by 10 an then rounding the value
-      use the extra precision to implement a blending function toblend with the surrounding pixels (smoother transition)
+      use the extra precision to implement a blending function to blend with the surrounding pixels (smoother transition)
     - Don't output data to stick like a simple line of LEDs. Introduce a virtual_NUM_LEDS (use the 4 led strips in the flower head as one)--> Look at LEDs mirrorStick()  
     - load and test the trail bitmaps ( 1 degree per pixel )
     - when bmp file & folder --> "-" or "" i n config file (no file or folder selected) load 1st .bmp from first folder when bmp mode is activated.
     - implemet deep sleep for µC or idle animation when not played (make this selectable in config )
 
-    - test lowest voltage where leds are still working
       consider using charge / discharge board instead of charge only
 
   next version main PCB:
   
-    - add button resisor array onto the board.
+    - Don't use btn analog --> wire btn as digital 3 pins inputs (pullup)
     - add circuit to switch LEDs completly off (no standby current) 
       (maybe other battery charging board? --> charge/discharge with enable function?)
-    - pushbutton on off switch circuit
+    - push button -> on off switch circuit
+    - castellated holes for battery contact? contact surface pads?
     - add (electrolytic) capacitor to main pcb
     - make a mini push button pcb (curved / buttons pointing down)
     - put a connector terminal on the bottom - like ZH 1.5 mm (4 & 6 pin; pins) (90 degree angled connector)
@@ -116,20 +113,18 @@ To do:
   
   3D case design improvements
     - improved battery holder
- 
-
 
         Pinout:
-                      ______
-                  ___| USBC |___
-        (A0) D0  |O  |______|  O|  5V
-        (A1) D1  |O|----------|O|  GND
-        (A2) D2  |O|   XIAO   |O|  3V3
-        (A3) D3  |O| nRF52840 |O|  D10 (A10) MOSI
-    SDA (A4) D4  |O|   BLE    |O|  D9  (A9)  MISO
-    SCL (A5) D5  |O|  SENSE   |O|  D8  (A8)  SCK
-    Tx  (A6) D6  |O|__________|O|  D7  (A7)  Rx
-                  --------------
+                                   ______
+--------|-----|------|----     ___| USBC |___    -----|-------|------
+  LEDs  |     | (A0) | D0     |O  |______|  O|     5V |
+  SDCS  |     | (A1) | D1     |O|----------|O|     GND|
+  Btn1  |     | (A2) | D2     |O|   XIAO   |O|     3V3| ! Not constant !
+  Btn2  |     | (A3) | D3     |O| nRF52840 |O|     D10| (A10) | MOSI
+  Btn3  | SDA | (A4) | D4     |O|   BLE    |O|     D9 | (A9)  | MISO
+        | SCL | (A5) | D5     |O|  SENSE   |O|     D8 | (A8)  | SCK
+        | Tx  | (A6) | D6     |O|__________|O|     D7 | (A7)  | Rx
+                               --------------
 
        
       |------|------|------|--------------|
@@ -137,9 +132,9 @@ To do:
       |------|------|------|--------------|
       | D0   |  2   ⁪| A0   | LED Data  ⁪   |
       | D1   ⁪|  3   ⁪| A1   | SD Card CS   |
-      | D2   ⁪|  4   ⁪| A2   | Buttons In   |
-      | D3   ⁪|  5   ⁪| A3   |              |
-      | D4   ⁪|  6   ⁪| SDA  |              |
+      | D2   ⁪|  4   ⁪| A2   | Button 1     |
+      | D3   ⁪|  5   ⁪| A3   | Button 2     |
+      | D4   ⁪|  6   ⁪| SDA  | Button 3     |
       | D5   ⁪|  7   ⁪| SCL  |              |
       | D6   ⁪| 21   ⁪| Tx   |              |
       | --   ⁪| --   ⁪| ---- | ------------ |
@@ -166,7 +161,7 @@ To do:
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
-
+  //if(DEBUG){while (!Serial.available()) { yield();}}
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
   setup_Config(); // find and load config.csv from SD card or write new if not found
@@ -175,13 +170,18 @@ void setup(){
   setup_FILTER_IMU();
   setup_BLE_COM();
   setup_LEDs();
-
   memset(pixelBuff,0,sizeof(pixelBuff));  // Filling  the buffer to see at compile time what space is used and whats left - can be removed later
+  startBLE(); // debugging voltage readings & Vref
 }
 
+
+
 void loop(){ // all main functions have timining structures integrated
-  main_FILTER_IMU();
-  main_LEDs();
+  //main_FILTER_IMU();
+  //main_LEDs();
   main_BLE_COM();
+  main_Batt();
+  main_Inputs();
+
 
 }

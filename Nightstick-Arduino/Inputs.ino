@@ -4,17 +4,37 @@ uint8_t btnValCount = 0;
 uint8_t btnRng = 40;
 uint16_t btnP = BTN_NONE;
 uint16_t btnPLast = BTN_NONE;
-uint16_t btnValLast ;
+
 unsigned long btnTimer;
 unsigned long btnDelay;
 bool btnRst = false;
 
+void main_Inputs(){
+  EVERY_N_MILLIS(DELAYMS_READBTN){readBtn();}
+}
+
+uint16_t btnVal = 0; 
+uint16_t btnValLast = 0; 
 
 void readBtn(){
   if(millis() > btnDelay){
     //float btnVal_f = ((float)analogRead(BTN_PIN)/maxBat)*1000.0;
-    float btnVal_f = ((float)analogRead(BTN_PIN));
-    uint16_t btnVal = btnVal_f;
+    //float btnVal_f = ((float)analogRead(BTN_PIN));
+    
+    btnVal = analogRead(BTN_PIN);
+    
+    if(btnVal > btnValLast + 20 || btnVal < btnValLast - 20){
+        delay(2);
+        btnVal = analogRead(BTN_PIN);
+        //Serial.print("Btn val raw: "); 
+        //Serial.println(btnVal);
+        charBuff[0]='\0'; // clear buffer
+        strcpy(charBuff,i2char(rawBat));
+        strcat(charBuff,"  ");
+        strcat(charBuff,i2char(btnVal));
+        if(bleMode == BLE_CONN){sendBLE(charBuff);}
+        btnValLast = btnVal;
+    }
 
            if(btnVal > BTN_A  - btnRng && btnVal < BTN_A  + btnRng){btnVal = BTN_A;}
       else if(btnVal > BTN_B  - btnRng && btnVal < BTN_B  + btnRng){btnVal = BTN_B;}
@@ -36,5 +56,7 @@ void readBtn(){
 
 
 void btnHandler(){
-
+  if (millis() - btnTimer < LONGTIME){
+    
+  }
 }

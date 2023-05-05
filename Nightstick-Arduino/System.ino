@@ -11,7 +11,6 @@ void setupInernalLed(){
   digitalWrite(LED_BLUE, HIGH);// High = off
 }
 
-
 void setBoardLed(char ch, char state){
    bool state_bool;
   if(state == '1'){state_bool = HIGH;}
@@ -20,6 +19,7 @@ void setBoardLed(char ch, char state){
   setBoardLed(ch, state_bool);
   // msg(ch); msg(" Led channel is now "); msgln(state ? "HIGH" : "LOW");
 }
+
 void setBoardLed(char ch, bool state){
   int chPin;
   if(ch=='R'){chPin = LED_RED;}
@@ -27,18 +27,31 @@ void setBoardLed(char ch, bool state){
   else if(ch=='B'){chPin = LED_BLUE;}
   else{msgln("wrong channel char");return;}
   digitalWrite(chPin, !state);
-} 
-const char *  getErrMsg(uint8_t numErr){
-    switch (numErr) {
-      case 0: return "No Error"; break;
-      case 1: return "sendBLE bleBuf overflow"; break;
-      case 2: return "No SD Card"; break;
-      case 3: return ""; break;
-      case 4: return ""; break;
-      case 5: return ""; break;
-      default: return "Unknown Error"; break;
-    }
 }
+
+//struct errInfo{  char msg[MAXFILECHARS]; bool logSD; char ch1; uint16_t t1; char ch2; uint16_t t2; bool LedLoop;};
+void error(uint8_t errID){
+  lastErrID = errID;
+  if (errID == 0) {return;}
+  errInfo err;
+  getErrInfo(errID, &err);
+  
+  if(DEBUG && Serial){Serial.println(err.msg);}
+  //if(err.logSD){append2log(err.msg);}
+  setErrBlink(&err);
+}
+
+void setErrBlink(errInfo* err){ //char ch1, uint16_t delay1, char ch2, uint16_t delay2, bool loopForever
+    while(true){
+      setBoardLed(err->ch1,true);  delay(err->t1);  setBoardLed(err->ch1,false); delay(330) ;
+      setBoardLed(err->ch2,true);  delay(err->t2);  setBoardLed(err->ch2,false); delay(2500);
+      setBoardLed(err->ch1,true);  delay(err->t1);  setBoardLed(err->ch1,false); delay(330) ;
+      setBoardLed(err->ch2,true);  delay(err->t2);  setBoardLed(err->ch2,false); delay(2500);
+      if(!err->ledLoop){break;}
+  }
+}
+
+void getErrInfo(uint8_t index, errInfo* thisErr){ if(index < errInfoCount){memcpy_P(&thisErr, &errInfoArr[index], sizeof(errInfo));} }
 
 void msg(const char *msgIn){
   if (msgIn == NULL) return;
@@ -49,7 +62,7 @@ void msgln(const char *msgIn){
   msg(msgIn); msg("\r\n");
 }
 
-// ------------------------------------------ CHAR ARRAY -> TO -> VAROUS TYPES---------------------------------------------------
+// ------------------------------------------ CHAR ARRAY -> TO -> VAROUS TYPES ---------------------------------------------------
 
 bool isByte(char* str) { //uint8_t result result = atoi(str);
     if(strlen(str) > 3) return false;
@@ -106,8 +119,11 @@ void cArrTrim(char* str){
  }
 }
 void cArrTrimLeft(char* str){  uint16_t cArrLen = strlen(str); strcpy(str, &str[1]); str[cArrLen-1] = '\0'; } 
+void cArrTrimLeft(char* str, uint16_t len){  uint16_t cArrLen = strlen(str); strcpy(str, &str[len]); str[cArrLen-len] = '\0'; }
 
 void cArrTrimRight(char* str){ str[strlen(str)-1] = '\0';}
+void cArrTrimRight(char* str, uint16_t len){ str[strlen(str)-len] = '\0';}
+  
 
  void cArrChangeCase(char* str, bool toUpper){
   for(int i = 0; i < strlen(str); i++){ // x |= (1 << n);
@@ -118,14 +134,13 @@ void cArrTrimRight(char* str){ str[strlen(str)-1] = '\0';}
   }
 }
 // ------------------------------------------ VAROUS TYPES -> TO -> CHAR ARRAY ---------------------------------------------------
-char attrBuf[21];
-//const char * f2char(float fval){ attrBuf[0] = '\0'; dtostrf(fval, 4, 2,attrBuf); return attrBuf;}
-const char * i2char(int ival){attrBuf[0] = '\0'; itoa(ival,attrBuf,10);  return attrBuf;}
-const char * ul2char(unsigned long ulvar){attrBuf[0] = '\0'; ultoa(ulvar,attrBuf, 10);  return attrBuf;}//(ulong,charBuffer,radix)(radix 2 = BIN | 10 = DEC | 16 = HEX)
+const char * f2char(float fval){ charBuff[0] = '\0'; dtostrf(fval, 4, 2,charBuff); return charBuff;}
+const char * i2char(int ival){charBuff[0] = '\0'; itoa(ival,charBuff,10);  return charBuff;}
+const char * ul2char(unsigned long ulvar){charBuff[0] = '\0'; ultoa(ulvar,charBuff, 10);  return charBuff;}//(ulong,charBuffer,radix)(radix 2 = BIN | 10 = DEC | 16 = HEX)
 
 char * ms2Time(unsigned long ms){ //any ms long in --> return char array Xd XXh XXm  (max width = 11)
   ms /= 1000;
-  attrBuf[0] = '\0';
-  sprintf(attrBuf,"%ud %02uh %02um",(unsigned int)(ms/86400),(unsigned int)((ms / 3600) % 24),(unsigned int)((ms/60) % 60));
-  return attrBuf;
+  charBuff[0] = '\0';
+  sprintf(charBuff,"%ud %02uh %02um",(unsigned int)(ms/86400),(unsigned int)((ms / 3600) % 24),(unsigned int)((ms/60) % 60));
+  return charBuff;
 }

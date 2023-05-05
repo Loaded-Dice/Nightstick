@@ -20,27 +20,50 @@
 #define BTN_SHORT   0
 #define BTN_LONG    1
 //---==={DEFINITIONS - COMMON / System}===---//
+#include <avr/dtostrf.h>
+#define DEBUG 1
 #define SIZE(ARRAY)    (sizeof(ARRAY) / sizeof(ARRAY[0]))
 #define ON  true
 #define OFF false
+#define ERRLONG  1000 // for internal led blink timing
+#define ERRSHORT 300  // for internal led blink timing
 #define RAD(A)  (A * 71) / 4068.0  // convert degree to radians
 #define DEG(A)  (A*4068) / 71.0    // convert radians to degree
 #define FREQ2MS(A) 1000/A
 #define MS2FREQ(A) 1000/A
 #define MAINPATH "/Nightstick"  // Main Folder on SD where BMPs Folder is in
+#define SUBFLD_BMP "/BMPs"
+#define SUBFLD_TRAIL "/trails"
+#define SUBFLD_STATIC "/static"
 #define CONFIGNAME "Config.csv"
 #define MAXFILECHARS 51 // 50 + null
 //---==={VARIABLES - COMMON / SYSTEM}===---//
-uint8_t err = 0; //  const char * errorMessage = getErrMsg(err);
+uint8_t lastErrID = 0; // 
+struct errInfo{  char msg[MAXFILECHARS]; bool logSD; char ch1; uint16_t t1; char ch2; uint16_t t2; bool ledLoop;};
+
+static const errInfo errInfoArr[] PROGMEM = { // delay times defined ERRSHORT or ERRLONG
+// |-----------------Error Message-------------------| log? |led1,delay1   ,led2 ,delay2   ,loop?      error ID (Array index)
+  {"No Error"                                         ,false,'G' ,0        ,'G'  ,0        ,false},  //  0
+  {"No SD Card detected"                              ,false,'R' ,ERRSHORT ,'R'  ,ERRSHORT ,true }   //  1
+};
+
+static const uint8_t errInfoCount = sizeof(errInfoArr)/sizeof(errInfo);
+
+
 char charBuff[MAXFILECHARS*4];  // generic char buffer (BLE has own buffer)
 //--------------------------------------------------------------------------------------------------------------------- Batt
 //--=={DEFINITIONS - Batt}==--//
 #define AVG_BATTREAD 4 // average batteryvoltage after n readings
 //---==={VARIABLES - Batt}===---//
+// vRefSet is 3.0V  bc.  the btn voltage div. analog in won't clip when using btns
 float vRefSet = 3.0; //Internal selectable: 3.6 || 3.0 || 2.4 || 1.8 || 1.2
-float vBat = 0.0;   // battery volatge (corrected)
-uint8_t pBat = 0;   // battery percentage (3.65V to 4.2V);
+float vBat = 4.2;   // battery volatge (corrected)
+uint8_t pBat = 100;   // battery percentage (3.65V to 4.2V);
+float rawBat = 0.0;
 float maxBat = 4.2;   // save scaled raw analog Batt val (for btn read volt.div.)
+const uint16_t vLookUp[]   = {268,  278, 288, 298, 308, 318, 328, 339, 349, 359, 369, 379, 389, 399, 409, 419}; //( vBat*100 )
+const uint16_t rawLookUp[] = {1168,1205,1239,1285,1315,1357,1398,1443,1488,1533,1566,1610,1650,1690,1733,1775}; //(Analog voltage @ 12 Bit; vRef = 3.0V)
+
 //--------------------------------------------------------------------------------------------------------------------- LEDs
 //---==={DEFINITIONS - LEDs}===---//
 #include <FastLED.h> 
@@ -59,22 +82,22 @@ FASTLED_USING_NAMESPACE
 #define LED_ANI    5
 #define LED_BLE    6
 #define LED_TEST   7   // For testing new stuff
-uint8_t ledMode = LED_OFF;
-uint8_t ledModeLast = LED_OFF;
+uint8_t ledMode = LED_TEST;
+uint8_t ledModeLast = LED_TEST;
 CRGB leds[NUM_LEDS];
 CRGBPalette16 currentPalette = OceanColors_p;//PartyColors_p
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);//254
 
 //---==={VARIABLES - LEDs }===---//
 uint8_t gHue = 0;
-uint8_t BRIGHTNESS = 40;// 40; // 40 = 155mA ; 3,8h at 600mA
+//uint8_t BRIGHTNESS = 40;// 40; // 40 = 155mA ; 3,8h at 600mA
 uint8_t gCurrentPatternNumber = 0;
 
 //--------------------------------------------------------------------------------------------------------------------- BLE_COM
 //---==={DEFINITIONS - BLE_COM}===---//
 #include <bluefruit.h>
-#define BLE_FAST_TIMEOUT  30
-#define BLE_TIMEOUT       60
+#define BLE_FAST_TIMEOUT  90
+#define BLE_TIMEOUT       120
 #define TERM_CHAR         '\n'
 #define BLE_BUFSIZE       150
 BLEDis  bledis;  // device information
@@ -127,7 +150,7 @@ VectorFloat gravity;
 #else  
 #define SD_CONFIG SdSpiConfig(SDCS_PIN, SHARED_SPI, SPI_CLOCK)
 #endif  
-#define error(s) sd.errorHalt(&Serial, F(s))
+//#define error(s) sd.errorHalt(&Serial, F(s))
 #define FILECHARMAX 41 // 50 +  '\0' (null) 
 //---==={VARIABLES - SD }===---//
 SdFat32 sd;
@@ -188,7 +211,7 @@ struct cfgFile{ // initialize with std values  and overwrite atrr from SD id fou
   char bleName[30] ="Nightstick";
   uint8_t bright = 35;
   char currentBmp[MAXFILECHARS] = "-";
-  char currentFolder[MAXFILECHARS] ="-";
+  char currentFolder[MAXFILECHARS*2] ="-"; // store 2 Folders= trails/elements or static/full
   uint8_t ledAni = 0;
   uint8_t palette = 0;
   uint8_t ledMode = LED_OFF;

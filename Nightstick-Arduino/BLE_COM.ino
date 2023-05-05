@@ -10,8 +10,8 @@ void setup_BLE_COM(){
   Bluefruit.Advertising.setSlowCallback(adv_slow_callback);
   Bluefruit.Advertising.setStopCallback(adv_stop_callback);
 
-  bledis.setManufacturer("Loaded Dice");
-  bledis.setModel("Nightstick v1.0");
+  bledis.setManufacturer("Marlon Graeber");
+  //bledis.setModel(cfg.bleName);
 
   bledis.begin();// Configure and Start Device Information Service
   bleuart.begin();// Configure and Start BLE Uart Service
@@ -37,6 +37,7 @@ void startBLE(void){
   Bluefruit.Advertising.setInterval(32, 244);    // in unit of 0.625 ms --> Infos:  https://developer.apple.com/library/content/qa/qa1931/_index.html   
   Bluefruit.Advertising.setFastTimeout(BLE_FAST_TIMEOUT);      // number of seconds in fast mode
   Bluefruit.Advertising.start(BLE_TIMEOUT);                // 0 = Don't stop advertising after n seconds  
+  Bluefruit.setConnLedInterval(400); 
   msgln("BLE on");
   bleMode = BLE_ADV;
 }
@@ -104,23 +105,36 @@ void adv_stop_callback(){
 void readBLE(){
     
     if (bleuart.available() > 0 && !newBleData && bleMode == BLE_CONN) {
-        char rc = bleuart.read();
-        if(rc >= 33 && rc <= 126  && !isControl(rc)) comBufIn[strlen(comBufIn)] = rc; comBufIn[strlen(comBufIn)+1] = '\0';
-        if(strlen(comBufIn)>= sizeof(comBufIn)-1){ newBleData=true;} // check for buffer overflow
-        else if(rc == TERM_CHAR){comBufIn[sizeof(comBufIn)] = '\0'; newBleData=true; } // '\n' = New Line = Line Feed = 10 (Dec) = 0A (Hex)
+        int n_bytes = bleuart.available();
+        if(n_bytes > SIZE(comBufIn)){sendBLE("BLE Buffer overflow");}
+        for(int i = 0; i < n_bytes; i++){ 
+          if(i < SIZE(comBufIn)){comBufIn[i] = bleuart.read();}  // overflow protection
+          else{bleuart.read(); }
+          }
+        if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
+        if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
+        newBleData=true;
+
     }
 }
 
 //fill up comBufOut[] and send out 
 void sendBLE(const char* bleBuf){ bleuart.write(bleBuf, strlen(bleBuf)); bleuart.write("\n", 1);}
 
-
-
 void bleMsgHandler(){
   if(newBleData && bleMode == BLE_CONN){
     cArrToUpper(comBufIn);
-    cArrTrim(comBufIn);
     if(strcmp(comBufIn, "#HAND")  == 0){sendBLE("#SHAKE\n");}
+    else if(strcmp(comBufIn, "VBAT_EN_H")  == 0){digitalWrite(VBAT_ENABLE,HIGH);}
+    else if(strcmp(comBufIn, "VBAT_EN_L")  == 0){digitalWrite(VBAT_ENABLE,LOW);}
+    else if(strcmp(comBufIn, "VBAT_READ")  == 0){sendBLE(i2char(rawBat));sendBLE("\t  "); sendBLE(f2char(vBat));} 
+    else if(strcmp(comBufIn, "REF_INTERN") == 0){analogReference(AR_INTERNAL);}
+    else if(strcmp(comBufIn, "REF_1V2")    == 0){analogReference(AR_INTERNAL_1_2); }
+    else if(strcmp(comBufIn, "REF_1V8")    == 0){analogReference(AR_INTERNAL_1_8);}
+    else if(strcmp(comBufIn, "REF_2V4")    == 0){analogReference(AR_INTERNAL_2_4); }
+    else if(strcmp(comBufIn, "REF_3V0")    == 0){analogReference(AR_INTERNAL_3_0);}
+    else if(strcmp(comBufIn, "DEPTH10")    == 0){analogReadResolution(10);}
+    else if(strcmp(comBufIn, "DEPTH12")    == 0){analogReadResolution(12);}    
     else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-\n"); }
     comBufIn[0]='\0';
     newBleData = false;

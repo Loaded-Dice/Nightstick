@@ -1,15 +1,8 @@
 void setup_SD(){
-  if (!sd.begin(SD_CONFIG)) {
+  if (!sd.begin(SD_CONFIG)) { 
+    error(1);
     //sd.initErrorHalt(&Serial);
-      while(true){
-        setBoardLed('R',true);
-        delay(330);
-        setBoardLed('R',false);
-        delay(330);
-      }
-    
     }
-  
 }
 
 void printDirectory(File32 path, int numTabs) {
