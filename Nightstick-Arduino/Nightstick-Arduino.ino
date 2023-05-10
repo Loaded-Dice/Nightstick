@@ -108,8 +108,11 @@ To do:
     - castellated holes for battery contact? contact surface pads?
     - add (electrolytic) capacitor to main pcb
     - make a mini push button pcb (curved / buttons pointing down)
+    - DIY charging controller second PCB (5V / VBUS from main USB-C)
+    - Test BAT60A-E6327 Schottky Diode 10V 3A  SOD323 with Bat+ contact to power main processor
+    - high side switch load switch to switch led array power?  and/or processor power (self retaining push btn power on?)
     - put a connector terminal on the bottom - like ZH 1.5 mm (4 & 6 pin; pins) (90 degree angled connector)
-        (Btn1,Btn2,Btn3,Gnd) (VBat,DO_Led,Gnd) (VBat, DO_Led2, Gnd)(switch1,switch2)
+
   
   3D case design improvements
     - improved battery holder
@@ -117,24 +120,26 @@ To do:
         Pinout:
                                    ______
 --------|-----|------|----     ___| USBC |___    -----|-------|------
-  LEDs  |     | (A0) | D0     |O  |______|  O|     5V |
-  SDCS  |     | (A1) | D1     |O|----------|O|     GND|
-  Btn1  |     | (A2) | D2     |O|   XIAO   |O|     3V3| ! Not constant !
-  Btn2  |     | (A3) | D3     |O| nRF52840 |O|     D10| (A10) | MOSI
-  Btn3  | SDA | (A4) | D4     |O|   BLE    |O|     D9 | (A9)  | MISO
+        |     | (A0) | D0     |O  |______|  O|     5V |
+  LEDs  |     | (A1) | D1     |O|----------|O|     GND|
+  SDCS  |     | (A2) | D2     |O|   XIAO   |O|     3V3| ! Not constant ! but scaling proportional with battery voltage
+  Btn   |     | (A3) | D3     |O| nRF52840 |O|     D10| (A10) | MOSI
+        | SDA | (A4) | D4     |O|   BLE    |O|     D9 | (A9)  | MISO
         | SCL | (A5) | D5     |O|  SENSE   |O|     D8 | (A8)  | SCK
         | Tx  | (A6) | D6     |O|__________|O|     D7 | (A7)  | Rx
                                --------------
 
-       
-      |------|------|------|--------------|
-      | ⁪Pin  | GPIO | Pin  | Function     |
-      |------|------|------|--------------|
-      | D0   |  2   ⁪| A0   | LED Data  ⁪   |
-      | D1   ⁪|  3   ⁪| A1   | SD Card CS   |
-      | D2   ⁪|  4   ⁪| A2   | Button 1     |
-      | D3   ⁪|  5   ⁪| A3   | Button 2     |
-      | D4   ⁪|  6   ⁪| SDA  | Button 3     |
+
+
+
+      |------|------|------|--------------|   Planned for
+      | ⁪Pin  | GPIO | Pin  | Function     |   next PCB Version
+      |------|------|------|--------------|--------------------------
+      | D0   |  2   ⁪| A0   |              |   nRF EN 
+      | D1   ⁪|  3   ⁪| A1   | LEDs DO      |
+      | D2   ⁪|  4   ⁪| A2   | SD CS        |
+      | D3   ⁪|  5   ⁪| A3   | Buttons A In |
+      | D4   ⁪|  6   ⁪| SDA  |              |   VccLed EN
       | D5   ⁪|  7   ⁪| SCL  |              |
       | D6   ⁪| 21   ⁪| Tx   |              |
       | --   ⁪| --   ⁪| ---- | ------------ |
@@ -182,6 +187,43 @@ void loop(){ // all main functions have timining structures integrated
   main_BLE_COM();
   main_Batt();
   main_Inputs();
+  //voltageDebug();
 
 
+}
+bool test = false;
+void voltageDebug(){
+   EVERY_N_MILLIS(300){    
+      float vTemp = (float)analogRead(PIN_VBAT) / 4095.0 * 3.0; // real voltage (between voltage divider)
+      vTemp = vTemp / 510.0 * 1510.0 ; // vBat voltage (above voltage divider)
+      uint16_t rawBtn = (int)(((float)analogRead(BTN_PIN)/ ((float)analogRead(PIN_VBAT) / 510.0 * 1510.0)) * 4095); // scaled up raw bat val ( raw val is now bigger than 4096 )
+      Serial.print(vTemp);
+      Serial.print("\t\t");
+      Serial.println((int)(rawBtn));
+      }
+// Btn  A 0.61 * 4095 = 2498;
+// Btn  B 0.43 * 4095 = 1761
+// Btn  C 0.19 * 4095 = 778
+// Btn AB 0.69 * 4095 = 2826
+// Btn BC 0.50 * 4095 = 2047
+// Btn AC 0.64 * 4095 = 2621
+  
+//  float (float)analogRead(BTN_PIN)/(float)analogRead(PIN_VBAT)
+//     
+//        if(bleMode == BLE_CONN && test){
+//          EVERY_N_MILLIS(1000){
+//            charBuff[0]='\0'; // clear buffer
+//            strcpy(charBuff,i2char((int)rawBat));
+//            strcat(charBuff,"  ");
+//            strcat(charBuff,f2char(vBat));
+//            strcat(charBuff,"  ");
+//            strcat(charBuff,i2char(pBat));
+//            strcat(charBuff,"  ");
+//            strcat(charBuff,i2char(btnVal));
+//            sendBLE(charBuff);
+//            
+//            }
+//          }
+          
+  
 }

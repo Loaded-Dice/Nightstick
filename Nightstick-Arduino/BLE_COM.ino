@@ -124,10 +124,18 @@ void sendBLE(const char* bleBuf){ bleuart.write(bleBuf, strlen(bleBuf)); bleuart
 void bleMsgHandler(){
   if(newBleData && bleMode == BLE_CONN){
     cArrToUpper(comBufIn);
+//    comBufOut[0] = '\0';
+//    strcpy(comBufOut,i2char((int)rawBat));
+//    strcat(comBufOut,"  ");
+//    strcat(comBufOut,f2char(vBat));
+//    strcat(comBufOut,"  ");
+//    strcat(comBufOut,i2char(pBat));
+//    strcat(comBufOut,"  ");
+//    strcat(comBufOut,i2char(btnVal));
     if(strcmp(comBufIn, "#HAND")  == 0){sendBLE("#SHAKE\n");}
     else if(strcmp(comBufIn, "VBAT_EN_H")  == 0){digitalWrite(VBAT_ENABLE,HIGH);}
     else if(strcmp(comBufIn, "VBAT_EN_L")  == 0){digitalWrite(VBAT_ENABLE,LOW);}
-    else if(strcmp(comBufIn, "VBAT_READ")  == 0){sendBLE(i2char(rawBat));sendBLE("\t  "); sendBLE(f2char(vBat));} 
+    else if(strcmp(comBufIn, "VBAT_READ")  == 0){sendBLE(comBufOut);} 
     else if(strcmp(comBufIn, "REF_INTERN") == 0){analogReference(AR_INTERNAL);}
     else if(strcmp(comBufIn, "REF_1V2")    == 0){analogReference(AR_INTERNAL_1_2); }
     else if(strcmp(comBufIn, "REF_1V8")    == 0){analogReference(AR_INTERNAL_1_8);}
@@ -135,6 +143,7 @@ void bleMsgHandler(){
     else if(strcmp(comBufIn, "REF_3V0")    == 0){analogReference(AR_INTERNAL_3_0);}
     else if(strcmp(comBufIn, "DEPTH10")    == 0){analogReadResolution(10);}
     else if(strcmp(comBufIn, "DEPTH12")    == 0){analogReadResolution(12);}    
+    else if(strcmp(comBufIn, "TESTHALLO")    == 0){test=!test; sendBLE(test ? "Test on" : "Test off");}    
     else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-\n"); }
     comBufIn[0]='\0';
     newBleData = false;

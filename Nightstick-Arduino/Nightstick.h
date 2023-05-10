@@ -2,7 +2,7 @@
 //---==={DEFINITIONS - COMMON / PINS}===---//
 #define LED_PIN     D1
 #define SDCS_PIN    D2
-#define BTN_PIN     D3
+#define BTN_PIN     A3
 //---==={DEFINITIONS - COMMON / DELAYS}===---//
 #define DELAYMS_FILTERIMU 10 // 100Hz
 #define DELAYMS_SHOWLED   10 // 100Hz
@@ -11,14 +11,37 @@
 #define DELAYMS_LEDOFF    2000  //
 //--=={DEFINITIONS - COMMON / Inputs}==--//
 #define BTN_NONE    0
-#define BTN_A       627
-#define BTN_B       438
-#define BTN_C       190
-#define BTN_AB      716
-#define BTN_BC      505
-#define LONGTIME    350
+#define BTN_A       1
+#define BTN_B       2
+#define BTN_C       3
+#define BTN_AB      4
+#define BTN_BA      5
+#define BTN_CB      6
+#define BTN_BC      7
+
+#define BTN_A_VAL       2504
+#define BTN_B_VAL       1775
+#define BTN_C_VAL       787
+#define BTN_AB_VAL      2839
+#define BTN_BC_VAL      2034
+#define BTN_RANGE   50    //value +/- Range
+#define BTN_MIN     500  // if value > BTN_MIN --> btn-pressed else relese
+#define LONGTIME    350 // time in ms
 #define BTN_SHORT   0
 #define BTN_LONG    1
+
+// ---==={VARIABLES - Inputs}===---//
+struct Btn{
+    uint16_t aVal = 0;
+    char firstBtn = ' ';
+    uint16_t aValPressed = 0;
+    unsigned long timer;
+    unsigned long wait = 0;
+    bool waitActive = false;
+};
+Btn btn;
+
+
 //---==={DEFINITIONS - COMMON / System}===---//
 #include <avr/dtostrf.h>
 #define DEBUG 1

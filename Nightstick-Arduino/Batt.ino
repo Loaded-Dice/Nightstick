@@ -1,18 +1,19 @@
 
 
 void setup_Batt(){
-  _eAnalogReference vRefAlias;
-  if(vRefSet == 3.6){vRefAlias = AR_INTERNAL;}
-  else if(vRefSet == 3.0){vRefAlias = AR_INTERNAL_3_0;}
-  else if(vRefSet == 2.4){vRefAlias = AR_INTERNAL_2_4;}
-  else if(vRefSet == 1.8){vRefAlias = AR_INTERNAL_1_8;}
-  else if(vRefSet == 1.2){vRefAlias = AR_INTERNAL_1_2;}
-  else{vRefSet = 3.0; vRefAlias = AR_INTERNAL_3_0;}
+//  _eAnalogReference vRefAlias;
+//  if(vRefSet == 3.6){vRefAlias = AR_INTERNAL;}
+//  else if(vRefSet == 3.0){vRefAlias = AR_INTERNAL_3_0;}
+//  else if(vRefSet == 2.4){vRefAlias = AR_INTERNAL_2_4;}
+//  else if(vRefSet == 1.8){vRefAlias = AR_INTERNAL_1_8;}
+//  else if(vRefSet == 1.2){vRefAlias = AR_INTERNAL_1_2;}
+//  else{vRefSet = 3.0; vRefAlias = AR_INTERNAL_3_0;}
   
   pinMode(PIN_VBAT,INPUT);
   pinMode(VBAT_ENABLE,OUTPUT);
   digitalWrite(VBAT_ENABLE,LOW); // keep this pin low 
-  analogReference(vRefAlias);
+  analogReference(AR_INTERNAL_3_0);
+  //analogReference(vRefAlias);
   analogReadResolution(12);
 }
 
