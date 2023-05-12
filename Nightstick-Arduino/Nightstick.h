@@ -37,7 +37,8 @@ struct Btn{
     uint16_t aValPressed = 0;
     unsigned long timer;
     unsigned long wait = 0;
-    bool waitActive = false;
+    bool prepare =false;
+    bool blocked = false;
 };
 Btn btn;
 
