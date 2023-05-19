@@ -33,8 +33,6 @@
 #define BTN_CB    10
 #define BTN_BC    11
 
-
-
 // ---==={VARIABLES - Inputs}===---//
 struct Btn{
     uint16_t aVal = 0;
@@ -53,6 +51,8 @@ Btn btn;
 #define SIZE(ARRAY)    (sizeof(ARRAY) / sizeof(ARRAY[0]))
 #define ON  true
 #define OFF false
+#define NEXT  1 // changing folder and bmps
+#define LAST -1 // changing folder and bmps
 #define ERRLONG  1000 // for internal led blink timing
 #define ERRSHORT 300  // for internal led blink timing
 #define RAD(A)  (A * 71) / 4068.0  // convert degree to radians

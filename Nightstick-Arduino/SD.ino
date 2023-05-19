@@ -20,8 +20,29 @@ void printDirectory(File32 path, int numTabs) {
    }
 }
 
-//------------------------------------------------------------------------------------  checking config folders and bmp for existance and otherwise assign first found
 
+void ledsChangeBmp(int8_t loadDirection){ // LAST -1 , NEXT 1
+       if(ledMode == LED_TRAIL ){strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS, cfg.trailsFolder, true) ,cfg.trailsBmp, loadDirection));}
+  else if(ledMode == LED_STATIC){strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC, cfg.staticFolder, true) ,cfg.staticBmp, loadDirection));}
+  BMPtoRAM(toCharBuff(pathBuff,cfg.trailsBmp,true));// combine parent folder (still at pathBuff) with new bmp
+  writeCfg();
+}
+
+void ledsChangeFld(int8_t loadDirection){
+       if(ledMode == LED_TRAIL ){
+        strcpy(cfg.trailsFolder, getOtherFld(FULLPATH_TRAILS,  cfg.trailsFolder , loadDirection));                  // load next/last folder
+        strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true) ,cfg.trailsBmp, 0)); // then set new bmp to index 0
+       }
+  else if(ledMode == LED_STATIC){
+        strcpy(cfg.staticFolder, getOtherFld(FULLPATH_STATIC,  cfg.staticFolder , loadDirection));
+        strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC, cfg.staticFolder, true) ,cfg.staticBmp, 0));
+        }
+  BMPtoRAM(toCharBuff(pathBuff,cfg.trailsBmp,true)); // combine parent folder (still at pathBuff) with new bmp
+  writeCfg();
+}
+//---------------------------------------------------------------------------------------------------------
+//   checking config file "last folders" and "last bmps" for existance and otherwise assign first found (at boot up)
+// --------------------------------------------------------------------------------------------------------
 void chkBmpsAndFolders(){
 
 bool rewriteCfg = false;

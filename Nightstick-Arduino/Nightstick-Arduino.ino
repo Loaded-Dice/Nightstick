@@ -2,7 +2,7 @@
                -------------------
  ------=======|  NIGHTSTICK CODE  |=======-------
                -------------------
-           ---=={ Version 0.1.5 }==--- 
+           ---=={ Version 0.1.6 }==--- 
                 by Marlon Graeber
                 aka "Loaded Dice"
            
@@ -64,7 +64,6 @@ This Nightstick Arduino Code is free software: you can redistribute it and/or  m
 The Nightstick code is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU Lesser General Public License](https://www.gnu.org/licenses/lgpl-3.0.en.html) for more details.
 You should have received a copy of the GNU Lesser General Public License along with this code.  If not, see [this](https://www.gnu.org/licenses/)
 
-
 To do:
 
   New Featues to implement:
@@ -73,18 +72,11 @@ To do:
     - make compatible android app and / or lilygo smartwatch code to communicate via BLE with the stick, change settings, lookup battery status....
   
   Improvements & next steps:
-  
-    - complete input detection & hander routine
-        - long button tap (button 1 or 3) -> change folder
-        - short button tap  (button 1 or 3) -> change bitmap
-        - short button tap (center button) cycle through  battery state display mode / tilt stick - brightness control mode 
-        - long button tap  (center button) activate bluetooth (play stick animation) (very long tap = BT/BLE pairing mode)
-      also create an MAIN_PATH/System/error_log.txt file with  millis() timestamp and error message
-      also on bootup search for the error_log.txt and print to serial via msg() and msgln()
+
+    - check if the flat led byte array is loaded correctly (by width & height meta info)
+    - create an MAIN_PATH/System/error_log.txt file with  millis() timestamp and error message
+    - also on bootup search for the error_log.txt and print to serial via msg() and msgln()
     - config struct should control controls main stick states (switch variables like  BRIGHTNESS to cfg.bright and so on)
-    - (on startup read all folders and bitmap files in MAIN_PATH/BMPs/ and for each folder create a text file here: MAIN_PATH/System/BMPs/folder_name.txt)
-      each text doument contains a list of all bitmap files that are loadable (right size). so the document serves like a lookup table what file/folder is next/pervious (sdFat fgets())
-      create/clear MAIN_PATH/System/BMPs folder on startup
     - Store contents of the Readme.txt file in progmem and write it to sd card if the file is not present or file size is different
     - when SD card is empty create folder structre and Files: MAIN_PATH, MAIN_PATH/BMPs, MAIN_PATH/System, MAIN_PATH/readme.txt, MAIN_PATH/config.csv (config done!) ...
     - implement the use of colorpalettes from FastLed
@@ -94,28 +86,23 @@ To do:
       use the extra precision to implement a blending function to blend with the surrounding pixels (smoother transition)
     - Don't output data to stick like a simple line of LEDs. Introduce a virtual_NUM_LEDS (use the 4 led strips in the flower head as one)--> Look at LEDs mirrorStick()  
     - load and test the trail bitmaps ( 1 degree per pixel )
-    - when bmp file & folder --> "-" or "" i n config file (no file or folder selected) load 1st .bmp from first folder when bmp mode is activated.
     - implemet deep sleep for µC or idle animation when not played (make this selectable in config )
     - indicate button push by single leds in the 1st ring light up
 
-
   next version main PCB:
   
-    - Don't use btn analog --> wire btn as digital 3 pins inputs (pullup)
-    - add circuit to switch LEDs completly off (no standby current) 
-      (maybe other battery charging board? --> charge/discharge with enable function?)
-    - push button -> on off switch circuit
     - castellated holes for battery contact? contact surface pads?
-    - add (electrolytic) capacitor to main pcb
-    - make a mini push button pcb (curved / buttons pointing down)
-    - DIY charging controller second PCB (5V / VBUS from main USB-C)
+    - add (electrolytic) capacitor to main pcb (SMD 10uF)
+    - make a mini push button pcb: curved, buttons pointing down, sesistor array on the opposite side oth the btns
     - Test BAT60A-E6327 Schottky Diode 10V 3A  SOD323 with Bat+ contact to power main processor
-    - high side switch load switch to switch led array power?  and/or processor power (self retaining push btn power on?)
+    - high side switch / load switch to switch led array power?  and/or processor power (self retaining push btn power on?)
     - put a connector terminal on the bottom - like ZH 1.5 mm (4 & 6 pin; pins) (90 degree angled connector)
 
-  
   3D case design improvements
     - improved battery holder
+    - btn pcb opening
+    - less infill for socket and inner core
+    - manual weight distribution
 
         Pinout:
                                    ______
@@ -128,8 +115,6 @@ To do:
         | SCL | (A5) | D5     |O|  SENSE   |O|     D8 | (A8)  | SCK
         | Tx  | (A6) | D6     |O|__________|O|     D7 | (A7)  | Rx
                                --------------
-
-
 
 
       |------|------|------|--------------|   Planned for
@@ -150,15 +135,6 @@ To do:
       |------|------|------|--------------|
 
                   
-   Main thoughts on the code structure:
-   
-     includes, definitions, Global variables & structs  are in the header file "Nightstick.h"
-     Written in that order for each tab page section separated
-     each tab gets its own setup function on the beginning of the page named setup_tabName() 
-     and if routines need to run within the loop  i created a main_tabName() function right below the setup_tabName() function
-     when a specific timing is needed for the main_ functions, a template function from the fastLED library is used (EVERY_N_MILLIS(n){})
-     with the delay time defined in Nightstick.h
-
 
 
     mode      | static   | trail    | Ani   | Fire | Ambient | brightness | battery  |
@@ -174,8 +150,17 @@ To do:
     BTN_CB    | palette--     <-        <-     <-      <-         <-          <-     |     
    -----------|----------|----------|-------|------|---------|------------|----------|      
 
-    BTN_BA              
-    BTN_BC    
+    BTN_BA     // combo unused: to avoid bluetooth toggle by accident          
+    BTN_BC     // combo unused: to avoid bluetooth toggle by accident   
+
+   Main thoughts on the code structure:
+   
+     includes, definitions, Global variables & structs  are in the header file "Nightstick.h"
+     Written in that order for each tab page section separated
+     each tab gets its own setup function on the beginning of the page named setup_tabName() 
+     and if routines need to run within the loop  i created a main_tabName() function right below the setup_tabName() function
+     when a specific timing is needed for the main_ functions, a template function from the fastLED library is used (EVERY_N_MILLIS(n){})
+     with the delay time defined in Nightstick.h
 */
 
 #include "Nightstick.h"
@@ -193,11 +178,9 @@ void setup(){
   setup_BLE_COM();
   setup_LEDs();
   memset(pixelBuff,0,sizeof(pixelBuff));  // Filling  the buffer to see at compile time what space is used and whats left - can be removed later
-  startBLE(); // debugging voltage readings & Vref
+  //startBLE(); // debugging voltage readings & Vref
   
 }
-
-
 
 void loop(){ // all main functions have timining structures integrated
   //main_FILTER_IMU();
@@ -205,43 +188,4 @@ void loop(){ // all main functions have timining structures integrated
   main_BLE_COM();
   main_Batt();
   main_Inputs();
-  //voltageDebug();
-
-
-}
-bool test = false;
-void voltageDebug(){
-   EVERY_N_MILLIS(300){    
-      float vTemp = (float)analogRead(PIN_VBAT) / 4095.0 * 3.0; // real voltage (between voltage divider)
-      vTemp = vTemp / 510.0 * 1510.0 ; // vBat voltage (above voltage divider)
-      uint16_t rawBtn = (int)(((float)analogRead(BTN_PIN)/ ((float)analogRead(PIN_VBAT) / 510.0 * 1510.0)) * 4095); // scaled up raw bat val ( raw val is now bigger than 4096 )
-      Serial.print(vTemp);
-      Serial.print("\t\t");
-      Serial.println((int)(rawBtn));
-      }
-// Btn  A 0.61 * 4095 = 2498;
-// Btn  B 0.43 * 4095 = 1761
-// Btn  C 0.19 * 4095 = 778
-// Btn AB 0.69 * 4095 = 2826
-// Btn BC 0.50 * 4095 = 2047
-// Btn AC 0.64 * 4095 = 2621
-  
-//  float (float)analogRead(BTN_PIN)/(float)analogRead(PIN_VBAT)
-//     
-//        if(bleMode == BLE_CONN && test){
-//          EVERY_N_MILLIS(1000){
-//            charBuff[0]='\0'; // clear buffer
-//            strcpy(charBuff,i2char((int)rawBat));
-//            strcat(charBuff,"  ");
-//            strcat(charBuff,f2char(vBat));
-//            strcat(charBuff,"  ");
-//            strcat(charBuff,i2char(pBat));
-//            strcat(charBuff,"  ");
-//            strcat(charBuff,i2char(btnVal));
-//            sendBLE(charBuff);
-//            
-//            }
-//          }
-          
-  
 }
