@@ -64,6 +64,10 @@ void msgln(const char *msgIn){
 
 // ------------------------------------------ CHAR ARRAY -> TO -> VAROUS TYPES ---------------------------------------------------
 
+bool isBmp(char* filename){return (strcmp(&filename[strlen(filename)-4],".bmp") == 0 || strcmp(&filename[strlen(filename)-4],".BMP") == 0);}
+bool isCfg(char* filename){return (strcmp(&filename[strlen(filename)-4],".csv") == 0 || strcmp(&filename[strlen(filename)-4],".CSV") == 0);}
+bool isCsv(char* filename){return isCfg(filename);}
+
 bool isByte(char* str) { //uint8_t result result = atoi(str);
     if(strlen(str) > 3) return false;
     for(uint8_t i = 0; i < strlen(str); i++){ if(!isDigit(*str+i) || str[i] == '.'){return false;} }
@@ -112,6 +116,11 @@ void cArrToLower(char* str) { cArrChangeCase(str,false);}
 void cArrToUpper(char* str) { cArrChangeCase(str,true); }
 bool cArrStartsWith(char* str, char chk){return (str[0] == chk);}
 bool cArrEndsWith(char* str, char chk){return (str[strlen(str)-1] == chk);}
+int16_t cArrIndexOf(char* str, char chk){ for(int i = 0; i < strlen(str); i++){
+  if(str[i]==chk){return i;}
+}
+  return -1;
+}
 void cArrTrim(char* str){
  while( cArrEndsWith(str, ' ') || cArrEndsWith(str, '\t') || cArrStartsWith(str, ' ') || cArrStartsWith(str, '\t')){
   if( cArrEndsWith(str, ' ') || cArrEndsWith(str, '\t')){cArrTrimRight(str);}
@@ -123,7 +132,6 @@ void cArrTrimLeft(char* str, uint16_t len){  uint16_t cArrLen = strlen(str); str
 
 void cArrTrimRight(char* str){ str[strlen(str)-1] = '\0';}
 void cArrTrimRight(char* str, uint16_t len){ str[strlen(str)-len] = '\0';}
-  
 
  void cArrChangeCase(char* str, bool toUpper){
   for(int i = 0; i < strlen(str); i++){ // x |= (1 << n);

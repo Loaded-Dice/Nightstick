@@ -12,13 +12,14 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
 
    EVERY_N_MILLIS(DELAYMS_SHOWLED) {
     gHue++;
-    //if(ledMode != ledModeLast && ledMode == LED_BMP){chkBmpLoaded();};
+    //if(ledMode != ledModeLast && ledMode == LED_STATIC){chkBmpLoaded();};
     switch (ledMode) {
-      case LED_BMP:   break;
-      case LED_FIRE: make_fire();  break;
-      case LED_BATT:  break;
-      case LED_BRIGHT:  break;
+      case LED_STATIC:   break;
+      case LED_TRAIL:   break;
       case LED_ANI:  break;
+      case LED_FIRE: make_fire();  break;
+      case LED_BRIGHT:  break;
+      case LED_BATT:  break;
       case LED_BLE:  break;
       case LED_TEST: rainbow(); break;
       default:  break; 
@@ -45,10 +46,10 @@ void mirrorStick(){
 //void chkBmpLoaded(){
 //  
 //  
-//  if(strcmp(cfg.currentBmp,"") == 0 || strcmp(cfg.currentBmp,"-") == 0 || strcmp(cfg.currentFolder,"") == 0 || strcmp(cfg.currentFolder,"-") == 0){//search for first bmp - open nextFile until path != dir 
+//  if(strcmp(cfg.staticBmp,"") == 0 || strcmp(cfg.staticBmp,"-") == 0 || strcmp(cfg.staticFolder,"") == 0 || strcmp(cfg.staticFolder,"-") == 0){//search for first bmp - open nextFile until path != dir 
 //
 //    } 
-//  if(strcmp(cfg.currentFolder,"") == 0 || strcmp(cfg.currentFolder,"-") == 0){;} 
+//  if(strcmp(cfg.staticFolder,"") == 0 || strcmp(cfg.staticFolder,"-") == 0){;} 
 //  strcmp
 //}
 //
@@ -64,8 +65,8 @@ void mirrorStick(){
 //  else{
 //  path.open(path, FILE_READ);
 //  
-//  cfg.currentFolder[0] = '\0';
-//  cfg.currentBmp[0] = '\0';
+//  cfg.staticFolder[0] = '\0';
+//  cfg.staticBmp[0] = '\0';
 //  
 //  while(true){
 //    File32 entry =  path.openNextFile();
@@ -74,8 +75,8 @@ void mirrorStick(){
 //    if (entry.isDir()) {
 //      entry.getName(charBuff,sizeof(charBuff)); 
 //      
-//      strcat(cfg.currentFolder,"/");
-//      strcat(cfg.currentFolder,charBuff);
+//      strcat(cfg.staticFolder,"/");
+//      strcat(cfg.staticFolder,charBuff);
 //      }
 //  
 //  }

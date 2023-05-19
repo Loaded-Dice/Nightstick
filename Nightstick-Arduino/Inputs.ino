@@ -2,20 +2,6 @@ void setup_Inputs(){ pinMode(BTN_PIN,INPUT); }
 
 void main_Inputs(){ EVERY_N_MILLIS(DELAYMS_READBTN){readBtn();}}
 
-// chk BTN for
-/*
-A short / long = next bmp/folder
-B short / long = Toggle BT / BT pair
-C short / long = last  bmp/folder
-A -> B
-B -> A
-B -> C 
-C -> B
-*/
-
-
-
-
 
 void readBtn(){
     if(millis() < btn.wait){return;}
@@ -42,7 +28,7 @@ void readBtn(){
     }
     else if(btn.aVal < BTN_MIN && btn.firstBtn != ' '){btnHandler(btn.firstBtn, ' ');clearBtn(260);  return;}
 
-    //when btn is not released and the analog value changed -- chk 4 2nd btn 
+    //when btn is not released and the analog value changed -- check seckend btn push
     else if( btn.aVal > BTN_MIN && btn.firstBtn != ' ' && (btn.aVal > btn.aValPressed + BTN_RANGE || btn.aVal < btn.aValPressed - BTN_RANGE)){
       if(getSecondBtn(btn.aVal, btn.firstBtn) != ' '){btnHandler(btn.firstBtn, getSecondBtn(btn.aVal, btn.firstBtn)); btn.blocked = true; return;}
       else{ clearBtn(60); return;}
@@ -71,20 +57,62 @@ char getSecondBtn(uint16_t valIn, char first){
   else if(first == 'B' && valIn > BTN_BC_VAL - BTN_RANGE && valIn < BTN_BC_VAL + BTN_RANGE){ return 'C';}
   else{return ' ';}
 }
-
+// chk BTN for
+/*
+A short / long = next bmp/folder
+B short / long = Toggle BT / BT pair
+C short / long = last  bmp/folder
+A -> B
+B -> A
+B -> C 
+C -> B
+*/
 void btnHandler(char firstBtn, char secondBtn){
   unsigned long btn_ms = (millis() - btn.timer);
 
+ uint8_t btnResult = 0;
   if(secondBtn == ' '){
-         if(firstBtn == 'A'){ Serial.print("Btn A pressed for "); Serial.print( btn_ms ); Serial.print(" ms  ");Serial.println(btn_ms > LONGTIME ? "(LONG)" : "(SHORT)");}
-    else if(firstBtn == 'B'){Serial.print("Btn B pressed for "); Serial.print( btn_ms ); Serial.print(" ms  ");Serial.println(btn_ms > LONGTIME ? "(LONG)" : "(SHORT)");}
-    else if(firstBtn == 'C'){Serial.print("Btn C pressed for "); Serial.print( btn_ms ); Serial.print(" ms  ");Serial.println(btn_ms > LONGTIME ? "(LONG)" : "(SHORT)");}
+         if(firstBtn == 'A' && btn_ms <  LONGTIME){btnResult = A_SHORT;}
+    else if(firstBtn == 'B' && btn_ms <  LONGTIME){btnResult = B_SHORT;}
+    else if(firstBtn == 'C' && btn_ms <  LONGTIME){btnResult = C_SHORT;}
+    else if(firstBtn == 'A' && btn_ms >= LONGTIME){btnResult = A_LONG;}
+    else if(firstBtn == 'B' && btn_ms >= LONGTIME && btn_ms < ULONGTIME){btnResult = B_LONG;}
+    else if(firstBtn == 'C' && btn_ms >= LONGTIME){btnResult = C_LONG;}
+    else if(firstBtn == 'C' && btn_ms >= ULONGTIME){btnResult = B_ULONG;}
   }
   else{
-     if(firstBtn == 'A' && secondBtn == 'B'){Serial.println("Btn A and than B pressed");}
-     else if(firstBtn == 'B' && secondBtn == 'A'){Serial.println("Btn B and than A pressed");}
-     else if(firstBtn == 'C' && secondBtn == 'B'){Serial.println("Btn C and than B pressed");}
-     else if(firstBtn == 'B' && secondBtn == 'C'){Serial.println("Btn B and than C pressed");}
-     else{Serial.println("Something is wrong. Unknown Button combination");}    
+          if(firstBtn == 'A' && secondBtn == 'B'){btnResult = BTN_AB;}
+     else if(firstBtn == 'B' && secondBtn == 'A'){btnResult = BTN_BA;}
+     else if(firstBtn == 'C' && secondBtn == 'B'){btnResult = BTN_BC;}
+     else if(firstBtn == 'B' && secondBtn == 'C'){btnResult = BTN_BC;}
+     else{clearBtn(60);return;}    
   }
+  btnResultHandler(btnResult);
 }
+void btnResultHandler(uint8_t btnCode){
+  
+    switch (btnCode) {
+      case B_SHORT:   break;
+      case B_LONG:    break;
+      case B_ULONG:   break;
+      case BTN_AB:    break;
+      case BTN_CB:    break;
+      default:  break; 
+    }
+//ledMode
+  
+}
+/*
+A_SHORT
+B_SHORT
+C_SHORT
+A_LONG 
+B_LONG 
+C_LONG 
+B_ULONG
+BTN_AB
+
+BTN_CB
+*/
+//BTN_BA
+//BTN_BC

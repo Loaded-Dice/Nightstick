@@ -96,8 +96,8 @@ To do:
     - load and test the trail bitmaps ( 1 degree per pixel )
     - when bmp file & folder --> "-" or "" i n config file (no file or folder selected) load 1st .bmp from first folder when bmp mode is activated.
     - implemet deep sleep for µC or idle animation when not played (make this selectable in config )
+    - indicate button push by single leds in the 1st ring light up
 
-      consider using charge / discharge board instead of charge only
 
   next version main PCB:
   
@@ -158,7 +158,24 @@ To do:
      and if routines need to run within the loop  i created a main_tabName() function right below the setup_tabName() function
      when a specific timing is needed for the main_ functions, a template function from the fastLED library is used (EVERY_N_MILLIS(n){})
      with the delay time defined in Nightstick.h
-     
+
+
+
+    mode      | static   | trail    | Ani   | Fire | Ambient | brightness | battery  |
+   -----------|----------|----------|-------|------|---------|------------|----------|
+    A_SHORT   | next bmp | next bmp | Ani++ |      |         | bright++   |          |
+    B_SHORT   | mode++        <-        <-     <-      <-         <-          <-     |
+    C_SHORT   | last bmp | last bmp | Ani-- |      |         | bright--   |          |
+    A_LONG    | next fld | next fld |       |      |         | Light on   |          |
+    B_LONG    | mode--        <-        <-     <-      <-         <-          <-     |
+    C_LONG    | last fld | last fld |       |      |         |Light off   |          |
+    B_ULONG   | BLE I/O       <-        <-     <-      <-         <-          <-     |           
+    BTN_AB    | palette++     <-        <-     <-      <-         <-          <-     |         
+    BTN_CB    | palette--     <-        <-     <-      <-         <-          <-     |     
+   -----------|----------|----------|-------|------|---------|------------|----------|      
+
+    BTN_BA              
+    BTN_BC    
 */
 
 #include "Nightstick.h"
@@ -166,9 +183,10 @@ To do:
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
-  //if(DEBUG){while (!Serial.available()) { yield();}}
+  if(DEBUG){while (!Serial.available()) { yield();}}
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
+  testFileIdx();
   setup_Config(); // find and load config.csv from SD card or write new if not found
   setup_Inputs();
   setup_Batt();
@@ -177,6 +195,7 @@ void setup(){
   setup_LEDs();
   memset(pixelBuff,0,sizeof(pixelBuff));  // Filling  the buffer to see at compile time what space is used and whats left - can be removed later
   startBLE(); // debugging voltage readings & Vref
+  
 }
 
 

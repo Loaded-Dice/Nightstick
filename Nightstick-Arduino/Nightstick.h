@@ -10,14 +10,7 @@
 #define DELAYMS_READBATT  500  //1000
 #define DELAYMS_LEDOFF    2000  //
 //--=={DEFINITIONS - COMMON / Inputs}==--//
-#define BTN_NONE    0
-#define BTN_A       1
-#define BTN_B       2
-#define BTN_C       3
-#define BTN_AB      4
-#define BTN_BA      5
-#define BTN_CB      6
-#define BTN_BC      7
+
 
 #define BTN_A_VAL       2504
 #define BTN_B_VAL       1775
@@ -26,9 +19,21 @@
 #define BTN_BC_VAL      2034
 #define BTN_RANGE   50    //value +/- Range
 #define BTN_MIN     500  // if value > BTN_MIN --> btn-pressed else relese
-#define LONGTIME    350 // time in ms
-#define BTN_SHORT   0
-#define BTN_LONG    1
+#define LONGTIME    450 // time in ms
+#define ULONGTIME  2200
+#define A_SHORT   1
+#define B_SHORT   2
+#define C_SHORT   2
+#define A_LONG    4
+#define B_LONG    5
+#define C_LONG    6
+#define B_ULONG   7
+#define BTN_AB    8
+#define BTN_BA    9
+#define BTN_CB    10
+#define BTN_BC    11
+
+
 
 // ---==={VARIABLES - Inputs}===---//
 struct Btn{
@@ -60,6 +65,9 @@ Btn btn;
 #define SUBFLD_TRAIL "/trails"
 #define SUBFLD_STATIC "/static"
 #define CONFIGNAME "Config.csv"
+#define TYPE_FLD 0
+#define TYPE_BMP 1
+#define TYPE_CFG 2
 #define MAXFILECHARS 51 // 50 + null
 //---==={VARIABLES - COMMON / SYSTEM}===---//
 uint8_t lastErrID = 0; // 
@@ -98,14 +106,18 @@ FASTLED_USING_NAMESPACE
 #define max_bright 50
 #define min_bright 10
 #define NUM_LEDS   254 // 110 Leds @ center stick
-#define LED_OFF    0
-#define LED_BMP    1
-#define LED_BATT   2
-#define LED_FIRE   3
-#define LED_BRIGHT 4
-#define LED_ANI    5
-#define LED_BLE    6
-#define LED_TEST   7   // For testing new stuff
+
+#define LED_OFF       0
+
+#define LED_STATIC    1
+#define LED_TRAIL     2
+#define LED_ANI       3
+#define LED_FIRE      4
+#define LED_BRIGHT    5
+#define LED_BATT      6
+
+#define LED_BLE       7
+#define LED_TEST      8   // For testing new stuff
 uint8_t ledMode = LED_TEST;
 uint8_t ledModeLast = LED_TEST;
 CRGB leds[NUM_LEDS];
@@ -218,24 +230,31 @@ bmpInfo bmp;
 #define TYPE_BOOL   4
 #define TYPE_WORD   5
 
-#define CFG_START   0
-#define CFG_BLENAME 1   
-#define CFG_BRIGHT  2
-#define CFG_BMPFILE 3
-#define CFG_FOLDER  4
-#define CFG_ANI     5
-#define CFG_PALETTE 6
-#define CFG_LEDMODE 7
-#define CFG_ENDE    8
+#define CFG_START      0
+#define CFG_BLENAME    1   
+#define CFG_BRIGHT     2
+#define CFG_STATICBMP  3
+#define CFG_STATICFLD  4
+#define CFG_TRAILSBMP  5
+#define CFG_TRAILSFLD  6
+#define CFG_ANI        7
+#define CFG_PALETTE    8
+#define CFG_LEDMODE    9
+#define CFG_ENDE       10
 
 #define CFG_SEPERATOR ";" // must be in double quotation marks because tokenize function strtok expects char array (could be multiple seperator chars)
 
 //---==={VARIABLES - CONFIG}===---//
+char lastFld[50]; // char buffer to store last visited folder while checking bmp folders
+char lastBmp[50]; // char buffer to store last visited bitmap while checking bmp folders
+
 struct cfgFile{ // initialize with std values  and overwrite atrr from SD id found
   char bleName[30] ="Nightstick";
   uint8_t bright = 35;
-  char currentBmp[MAXFILECHARS] = "-";
-  char currentFolder[MAXFILECHARS*2] ="-"; // store 2 Folders= trails/elements or static/full
+  char staticBmp[MAXFILECHARS] = "-";
+  char staticFolder[MAXFILECHARS*2] ="-"; // store 2 Folders= trails/elements or static/full
+  char trailsBmp[MAXFILECHARS] = "-";
+  char trailsFolder[MAXFILECHARS*2] ="-"; // store 2 Folders= trails/elements or static/full
   uint8_t ledAni = 0;
   uint8_t palette = 0;
   uint8_t ledMode = LED_OFF;
@@ -253,12 +272,14 @@ static const cfgInfos cfgEntryArray[] PROGMEM = { // read config file properties
   {"Nightstick Config Start",   TYPE_NONE}, // 0
   {"Bluetooth Name",            TYPE_WORD}, // 1  
   {"Led Helligkeit",            TYPE_BYTE}, // 2  Led Brightness
-  {"Bitmap",                    TYPE_WORD}, // 3  Last File loaded
-  {"Ordner",                    TYPE_WORD}, // 4  Last active Folder
-  {"Animation",                 TYPE_BYTE}, // 5  Last played animation
-  {"Farbpalette",               TYPE_BYTE}, // 6  Last used color palette
-  {"Led Modus",                 TYPE_BYTE}, // 7  Last LED mode (fire/animaton/bmp...)
-  {"Nightstick Config Ende",    TYPE_NONE}  // 8
+  {"static Bitmap",             TYPE_WORD}, // 3  Last File loaded
+  {"static Ordner",             TYPE_WORD}, // 4  Last active Folder
+  {"trails Bitmap",             TYPE_WORD}, // 5  Last File loaded
+  {"trails Ordner",             TYPE_WORD}, // 6  Last active Folder
+  {"Animation",                 TYPE_BYTE}, // 7  Last played animation
+  {"Farbpalette",               TYPE_BYTE}, // 8  Last used color palette
+  {"Led Modus",                 TYPE_BYTE}, // 9  Last LED mode (fire/animaton/bmp...)
+  {"Nightstick Config Ende",    TYPE_NONE}  // 10
 };
 static const uint8_t cfgInfoCount = sizeof(cfgEntryArray)/sizeof(cfgEntry);
 

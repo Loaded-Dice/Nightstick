@@ -4,18 +4,118 @@ void setup_SD(){
     //sd.initErrorHalt(&Serial);
     }
 }
+void testFileIdx(){
+  msgln("Testing print bmps in folder for /Nightstick/BMPs/trails/colorless/");
+  printBmpsInFld("/Nightstick/BMPs/trails/colorless/");
+  msgln("");
+  msg("bitmaps in this folder: \t");
+  msgln(i2char(bmpCountInFld(SUBFLD_TRAIL,"colorless/")));
+  msg("bitmaps in this folder(2nd count method): \t");
+  msgln(i2char(bmpCountInFld("/Nightstick/BMPs/trails/colorless/")));
+  msgln("");
+  msgln("Testing print sub fld in folder for /Nightstick/BMPs/trails/");
+  printSubFld("/Nightstick/BMPs/trails/");
+  msg("folder in this folder: \t");
+  msgln(i2char(fldCountInFld("/Nightstick/BMPs/trails/")));
+  msg("folder in this folder(2nd count method): \t");
+  msgln(i2char(fldCountInFld("trails")));
+//    charBuff[0]='\0'; // clear buffer
+//    strcpy(charBuff,MAINPATH);
+//    strcat(charBuff,SUBFLD_BMP);
+//    if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){printDirectory(file,0); }
+//    file.close();
+  
+}
 
 void printDirectory(File32 path, int numTabs) {
    while(true) {
      File32 entry =  path.openNextFile();
      if (! entry) { msgln("**nomorefiles**"); break; }
      for (uint8_t i=0; i<numTabs; i++) { msg("\t"); }
+     msg(i2char(entry.dirIndex()));
+     msg("\t");
      entry.getName(charBuff,sizeof(charBuff));
      msg(charBuff);
      if (entry.isDir()) {  msgln("/"); printDirectory(entry, numTabs+1);} 
      else { msg("\t\t"); msgln(ul2char(entry.size())); }
      entry.close();
    }
+}
+void printBmpsInFld(char * fld){
+ File32 path;
+ 
+if (sd.exists(fld) && path.open(fld, FILE_READ)){
+    while(true) {
+       File32 entry =  path.openNextFile();
+      if (! entry) { msgln("**nomorefiles**"); break; }
+      entry.getName(charBuff,sizeof(charBuff));
+      if(isBmp(charBuff)&& entry.isFile()){msgln(charBuff);}
+    }
+  }
+  path.close();
+  
+}
+
+void printSubFld(char * fld){
+ File32 path;  
+if (sd.exists(fld) && path.open(fld, FILE_READ)){
+    while(true) {
+       File32 entry =  path.openNextFile();
+      if (! entry) { msgln("**nomorefiles**"); break; }
+      if(entry.isDir()){
+        entry.getName(charBuff,sizeof(charBuff));
+        msgln(charBuff);
+        }
+    }
+  }
+  path.close();
+}
+char * buildtBmpFld(char * categoryFld,const char * subFld){
+
+    (void)buildtCategoryFld(categoryFld);
+    if(subFld[0] != '/'){strcat(charBuff,"/");}
+    strcat(charBuff,subFld);
+    return charBuff;
+}
+char * buildtCategoryFld(char * categoryFld){
+    charBuff[0]='\0'; // clear buffer
+    strcpy(charBuff,MAINPATH);
+    strcat(charBuff,SUBFLD_BMP);
+    if(categoryFld[0] != '/'){strcat(charBuff,"/");}
+    strcat(charBuff,categoryFld);
+    return charBuff;
+}
+
+int16_t bmpCountInFld(char * fullFldPath){return filetypeInFld(fullFldPath,TYPE_BMP);}
+int16_t bmpCountInFld(char * categoryFld, char * subFld){ return filetypeInFld(buildtBmpFld(categoryFld,subFld),TYPE_BMP);}
+int16_t fldCountInFld(char * path){
+  if( cArrIndexOf((cArrStartsWith(path,'/') ? &path[1] : &path[0]), '/' ) == -1){return filetypeInFld(buildtCategoryFld(path),TYPE_FLD);}
+  else{ return filetypeInFld(path,TYPE_FLD); }
+}
+
+
+//int16_t filetypeInFld(static_cast<char *>(fldPath), uint8_t filetype){
+int16_t filetypeInFld(char * fldPath, uint8_t filetype){
+   File32 path;
+  uint16_t fileCount = 0; 
+  if (sd.exists(fldPath) && path.open(fldPath, FILE_READ)){
+      if(!path.isDir()){path.close(); return -1;}
+      while(true) {
+         File32 entry =  path.openNextFile();
+        if (! entry) {break; }
+        if(filetype == TYPE_FLD && entry.isDir()){fileCount++;} //#define TYPE_FLD 0
+        else if(filetype == TYPE_BMP && entry.isFile()){ //#define TYPE_BMP 1
+          entry.getName(charBuff,sizeof(charBuff));
+          if(isBmp(charBuff)){fileCount++;}
+          }
+        else if(filetype == TYPE_CFG &&  entry.isFile()){ //#define TYPE_CFG 2
+          entry.getName(charBuff,sizeof(charBuff));
+          if(isCfg(charBuff)){fileCount++;}
+          }
+      }
+    }
+    path.close();
+    return fileCount;
 }
 
 // how to load bmp:
@@ -70,7 +170,35 @@ void BMPtoRAM(char* bmpFilePath) {
   bmp.file.close();
 }
 
-
+//uint16_t countFiles(File32 path){
+//  int fileCount = 0;
+//   while (file.openNextFile(&path, O_RDONLY){fileCount++; file.close(); }
+//  return fileCount;
+//}
+//
+//
+//const char * changeEntry(File32 path, int8_t moveDir){
+//  
+//  bool pathIsFolder = path.isDirectory();
+// path.dirEntry(dir);
+// uint16_t fileCount = countFiles(dir);
+// uint16_t skippedFiles = 0;
+//  uint16_t tmpIdx = path.dirIndex();
+//  while(true){
+//       if(moveDir == -1 && tmpIdx == 0){tmpIdx = fileCount-1;}
+//  else if(moveDir  < 0 && tmpIdx  >  0){tmpIdx --;}
+//  else if(moveDir  > 0 && tmpIdx  >= fileCount-1){tmpIdx = 0;}
+//  else if(moveDir  > 0 && tmpIdx  < fileCount-1){tmpIdx++;}
+//    file.open(dir, tmpIdx,O_RDONLY);
+//    charBuff[0] = '\0';
+//    file.getName(charBuff,sizeof(charBuff));
+//    if(file.isDirectory() && pathIsFolder){file.close(); return charbuff;}
+//    else if(file.isFile() && !pathIsFolder && isBmp(charBuff){file.close(); return charbuff;}
+//     if(skippedFiles >= fileCount){ file.close(); charBuff[0] = '\0'; return charBuff,}
+//     file.close();
+//     skippedFiles++;
+//  }
+//}
 
 void readBmpHeader(char* bmpFilePath) { //store full bmp path in generic charBuff[] and call this funtion with the pointer to it
 
