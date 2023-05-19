@@ -59,7 +59,7 @@ void mirrorStick(){
 //  bool errBmp = false;
 //  File32 path;
 //  charBuff[0] = '\0';
-//  strcpy(charBuff,MAINPATH);
+//  strcpy(charBuff,MAIN_PATH);
 //  strcat(charBuff,"/BMPs");
 //  if(!sd.exists(charBuff)){errBmp = true;} // throw error!
 //  else{

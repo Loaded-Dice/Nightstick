@@ -1,7 +1,7 @@
 void setup_Config(){ // try to find the config file on the SD card and read the config values
   
   charBuff[0]='\0'; // clear buffer
-  strcpy(charBuff,MAINPATH);
+  strcpy(charBuff,MAIN_PATH);
   chkOrMkDir(charBuff); // check if mainpath /Nightstick exists and create if missing
   strcat(charBuff,SUBFLD_BMP);
   chkOrMkDir(charBuff); // check if subfolder Nightstick/BMPs exists and create if missing
@@ -12,7 +12,7 @@ void setup_Config(){ // try to find the config file on the SD card and read the 
   chkOrMkDir(charBuff);
   
   charBuff[0]='\0'; // clear buffer
-  strcpy(charBuff,MAINPATH);
+  strcpy(charBuff,MAIN_PATH);
   strcat(charBuff,"/");
   strcat(charBuff,CONFIGNAME);
     if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){readCfg(); }
@@ -58,6 +58,8 @@ void readCfg(){
         if (!parseLine(charBuff, n)) { msgln("parseLine failed");}
   }
   file.close();
+  chkBmpsAndFolders();
+  //write cfg if ok
 }
 
 bool parseLine(char* buff, uint16_t lineLen) {
@@ -75,6 +77,7 @@ bool parseLine(char* buff, uint16_t lineLen) {
   char *token;
   token = strtok(buff, CFG_SEPERATOR); // first token is property name
   uint8_t entryIdx = findProperty(token);
+  strcpy(charBuff,token);
   if (entryIdx == -1){ return false;}
   token = strtok(NULL, CFG_SEPERATOR);
   
@@ -99,7 +102,7 @@ bool parseLine(char* buff, uint16_t lineLen) {
       else if( entryIdx == CFG_PALETTE &&  isByte(token)){cfg.palette = convByte;msgln("Colorpalette ok");}
       else if( entryIdx == CFG_LEDMODE &&  isByte(token)){cfg.ledMode = convByte;msgln("LED Mode OK");}
       else if( entryIdx == CFG_ENDE    &&  token == NULL){msgln("End Config file ok");}
-      else {return false;}
+      else {msg("error with this token: "); msg(charBuff); msg("reading this value -->"); msg(token); msgln("<--"); return false;}
       return true;
 }
 
@@ -118,9 +121,10 @@ void getCfgInfo(uint8_t index){ if(index < cfgInfoCount){ memcpy_P(&cfgEntry, &c
 void writeCfg(){
   msgln("Writing new config file");
   charBuff[0]='\0'; // clear buffer
-  strcpy(charBuff,MAINPATH);
-  strcat(charBuff,"/");
-  strcat(charBuff,CONFIGNAME);
+  toCharBuff(MAIN_PATH,CONFIGNAME,true);
+//  strcpy(charBuff,MAIN_PATH);
+//  strcat(charBuff,"/");
+//  strcat(charBuff,CONFIGNAME);
   
     if(sd.exists(charBuff)){sd.remove(charBuff);} // remove old config file
 
@@ -153,105 +157,47 @@ void writeCfg(){
  }
 
 //------------------------------------------------------------------------------------  checking config folders and bmp for existance and otherwise assign first found
-/*
- bool chkFldAndBmp(const char * tmpParentFld, char * tmpFld, char * tmpBmp){
 
-    bool pathErr = false;
-    if(strlen(tmpFld) <= 1){ pathErr = true; }
-    else{
-      
-      charBuff[0]='\0'; // clear buffer
-      strcpy(charBuff,MAINPATH);
-      strcat(charBuff,SUBFLD_BMP);
-      strcat(charBuff,tmpParentFld);
-      strcat(charBuff,"/");
-      strcat(charBuff,tmpFld);
-      if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){
-        if(!file.isDir()){pathErr = true;}
-        file.close();
-        }
-      else {pathErr = true;}
+
+void chkBmpsAndFolders(){
+
+bool rewriteCfg = false;
+  if(!validPath(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true),  cfg.trailsFolder)){
+    strcpy(cfg.trailsFolder, getOtherFld(FULLPATH_TRAILS,  cfg.trailsFolder , 0));
+    rewriteCfg = true;
     }
-    if(pathErr){findFrist(tmpParentFld,tmpFld,tmpBmp,false); return pathErr;}
-    else{
-        if(!isBmp(tmpBmp)){pathErr = true;}
-        else{
-        strcat(charBuff,"/");
-        strcat(charBuff,tmpBmp);
-        if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){
-          if(file.isDir()){pathErr = true;}
-          file.close();
-          }
-        }
-      }
-      if(pathErr){findFrist(tmpParentFld,tmpFld,tmpBmp,true);return pathErr;}
-   return pathErr;
+  if(!validPath(toCharBuff(pathBuff, cfg.trailsBmp, true), cfg.trailsBmp)){
+    strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true) ,cfg.trailsBmp,0));
+    rewriteCfg = true;
+    }
+  if(!validPath(toPathBuff(FULLPATH_STATIC,  cfg.staticFolder, true),  cfg.staticFolder)){
+    strcpy(cfg.staticFolder, getOtherFld(FULLPATH_STATIC,  cfg.staticFolder , 0));
+    rewriteCfg = true;
+    }
+  if(!validPath(toCharBuff(pathBuff, cfg.staticBmp, true), cfg.staticBmp)){
+    strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC ,cfg.staticFolder,true),cfg.staticBmp,0));
+    rewriteCfg = true;
+    }
+  if(rewriteCfg){writeCfg();}
+  
+}
+//groupFld == NULL || 
+char * toCharBuff(char* cArr1, char* cArr2, bool chkSlash){return toBuff(cArr1,cArr2,charBuff,chkSlash);}
+char * toCharBuff(char* cArr1, char* cArr2){return toBuff(cArr1,cArr2,charBuff,false);}
+char * toPathBuff(char* cArr1, char* cArr2, bool chkSlash){return toBuff(cArr1,cArr2,pathBuff,chkSlash);}
+char * toPathBuff(char* cArr1, char* cArr2){return toBuff(cArr1,cArr2,pathBuff,false);}
+
+char * toBuff(char* cArr1, char* cArr2, char* targetArr, bool chkSlash){
+  targetArr[0]='\0';
+  strcpy(targetArr, cArr1);
+  if(chkSlash && !cArrEndsWith(cArr1,'/') && !cArrStartsWith(cArr2,'/')){strcat(targetArr,"/");}
+  strcat(targetArr, cArr2);
+  return targetArr;
 }
 
 
-
-
-void findFrist(const char * tmpParentFld, char * tmpFld, char * tmpBmp, bool onlyBmp){
-  charBuff[0]='\0'; // clear buffer
-  strcpy(charBuff,MAINPATH);
-  strcat(charBuff,SUBFLD_BMP);
-  strcat(charBuff,tmpParentFld);
-  if(onlyBmp){ // find both
-    strcat(charBuff,"/");
-    strcat(charBuff,tmpFld);
-    //search for first dir with bmp inside and sore in *tmpFld
-  }
-  lastFld[0] = '\0';
-  lastBmp[0] = '\0';
-  Serial.print("opening: ");Serial.println(charBuff);
-  dir.open(charBuff);
-  recursiveFindBmp(dir);
-  dir.close();
-  if(isWord(lastFld) && strlen(lastFld)>= 1 && !onlyBmp){strcpy(tmpFld,lastFld); Serial.print( "Found folder: "); Serial.println(lastFld);}
-  else{Serial.println( "No folder found");}
-  if(strlen(lastBmp) > 4 && isWord(lastBmp)){strcpy(tmpBmp,lastBmp); Serial.print( "Found BMP : "); Serial.println(lastBmp);}
-  else{Serial.println( "No BMP found");}
-  Serial.println("--------------------");
+bool validPath(char * fullPath, char * fullPathEndFile){
+  if(strcmp(fullPathEndFile,NULL) == 0 || strcmp(fullPathEndFile," ") == 0 || strcmp(fullPathEndFile,"-") == 0){return false;}
+  if(sd.exists(fullPath)){return true;}
+  else {return false;}
 }
-
-
-void recursiveFindBmp(File32 path){
-  while(true) {
-    
-     File32 entry =  path.openNextFile();
-     if (!entry) {break; }
-     if (entry.isDirectory()){ 
-        entry.getName(lastFld,sizeof(lastFld)); 
-        recursiveFindBmp(entry);
-      }
-     
-     else if (!entry.isDir()){
-       charBuff[0]='\0'; // clear buffer
-       entry.getName(charBuff,sizeof(charBuff));
-       if(isBmp(charBuff)){strcpy(lastBmp,charBuff); break;}
-       entry.close();
-     }
-  }
-}
-//void changePath(File32 currentPath, int8_t moveDir){
-//
-//  uint32_t tmpIdx = dir.dirIndex();
-//      dir.dirEntry(file);
-//}
-//void testIndexNav(){
-//      charBuff[0]='\0'; // clear buffer
-//      strcpy(charBuff,MAINPATH);
-//      strcat(charBuff,SUBFLD_BMP);
-//      strcat(charBuff,tmpParentFld);
-//      strcat(charBuff,"/");
-//      strcat(charBuff,SUBFLD_STATIC);
-//      strcat(charBuff,"/");
-//      strcat(charBuff,cfg.staticFolder);
-//      dir.open(charBuff);
-//      uint32_t tmpIdx = dir.dirIndex();
-//      dir.dirEntry(file);
-//      dir.close
-//      
-//(chkFldAndBmp(SUBFLD_STATIC,cfg.staticFolder,cfg.staticBmp) || chkFldAndBmp(SUBFLD_TRAIL,cfg.trailsFolder,cfg.trailsBmp)){
-
-*/

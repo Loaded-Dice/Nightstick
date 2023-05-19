@@ -79,14 +79,14 @@ To do:
         - short button tap  (button 1 or 3) -> change bitmap
         - short button tap (center button) cycle through  battery state display mode / tilt stick - brightness control mode 
         - long button tap  (center button) activate bluetooth (play stick animation) (very long tap = BT/BLE pairing mode)
-      also create an MAINPATH/System/error_log.txt file with  millis() timestamp and error message
+      also create an MAIN_PATH/System/error_log.txt file with  millis() timestamp and error message
       also on bootup search for the error_log.txt and print to serial via msg() and msgln()
     - config struct should control controls main stick states (switch variables like  BRIGHTNESS to cfg.bright and so on)
-    - (on startup read all folders and bitmap files in MAINPATH/BMPs/ and for each folder create a text file here: MAINPATH/System/BMPs/folder_name.txt)
+    - (on startup read all folders and bitmap files in MAIN_PATH/BMPs/ and for each folder create a text file here: MAIN_PATH/System/BMPs/folder_name.txt)
       each text doument contains a list of all bitmap files that are loadable (right size). so the document serves like a lookup table what file/folder is next/pervious (sdFat fgets())
-      create/clear MAINPATH/System/BMPs folder on startup
+      create/clear MAIN_PATH/System/BMPs folder on startup
     - Store contents of the Readme.txt file in progmem and write it to sd card if the file is not present or file size is different
-    - when SD card is empty create folder structre and Files: MAINPATH, MAINPATH/BMPs, MAINPATH/System, MAINPATH/readme.txt, MAINPATH/config.csv (config done!) ...
+    - when SD card is empty create folder structre and Files: MAIN_PATH, MAIN_PATH/BMPs, MAIN_PATH/System, MAIN_PATH/readme.txt, MAIN_PATH/config.csv (config done!) ...
     - implement the use of colorpalettes from FastLed
     - implement battery low animation 
     - in Led2Pixel() uint16_t ledPixelPos[NUM_LEDS][n]; where n=0 --> bmp x pos n=1 --> bmp y pos for each led

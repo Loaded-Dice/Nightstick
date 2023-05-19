@@ -47,7 +47,6 @@ struct Btn{
 };
 Btn btn;
 
-
 //---==={DEFINITIONS - COMMON / System}===---//
 #include <avr/dtostrf.h>
 #define DEBUG 1
@@ -60,11 +59,16 @@ Btn btn;
 #define DEG(A)  (A*4068) / 71.0    // convert radians to degree
 #define FREQ2MS(A) 1000/A
 #define MS2FREQ(A) 1000/A
-#define MAINPATH "/Nightstick"  // Main Folder on SD where BMPs Folder is in
+#define MAIN_PATH "/Nightstick"  // Main Folder on SD where BMPs Folder is in
 #define SUBFLD_BMP "/BMPs"
 #define SUBFLD_TRAIL "/trails"
 #define SUBFLD_STATIC "/static"
 #define CONFIGNAME "Config.csv"
+#define FULLPATH_TRAILS (MAIN_PATH SUBFLD_BMP SUBFLD_TRAIL)
+#define FULLPATH_STATIC (MAIN_PATH SUBFLD_BMP SUBFLD_STATIC)
+//const char FULLPATH_TRAILS[] = MAIN_PATH & SUBFLD_BMP & SUBFLD_TRAIL;
+//const char FULLPATH_STATIC[] = MAIN_PATH & SUBFLD_BMP & SUBFLD_STATIC;
+
 #define TYPE_FLD 0
 #define TYPE_BMP 1
 #define TYPE_CFG 2
@@ -83,6 +87,7 @@ static const uint8_t errInfoCount = sizeof(errInfoArr)/sizeof(errInfo);
 
 
 char charBuff[MAXFILECHARS*4];  // generic char buffer (BLE has own buffer)
+char pathBuff[MAXFILECHARS*4];
 //--------------------------------------------------------------------------------------------------------------------- Batt
 //--=={DEFINITIONS - Batt}==--//
 #define AVG_BATTREAD 4 // average batteryvoltage after n readings

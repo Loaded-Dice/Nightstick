@@ -6,14 +6,23 @@ void setup_SD(){
 }
 void testFileIdx(){
 //  msgln("Testing print bmps in folder for /Nightstick/BMPs/trails/colorless/");
-  msg("trails/colorless/GMHP_3_p.bmp next bmp file is: ");
-  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","GMHP_3_p.bmp",1));
-  msg("trails/colorless/GMHP_3_p.bmp last bmp file is: ");
-  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","GMHP_3_p.bmp",-1));
-  msg("trails/colorless/zig_zag_2_p.bmp next bmp file is (wrap around): ");
-  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","zig_zag_2_p.bmp",1));
-  msg("trails/colorless/abstract_step_p-1-2-3-7-8.bmp last bmp file is (wrap around): ");
-  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","abstract_step_p-1-2-3-7-8.bmp",-1));
+//  msg("trails/colorless/GMHP_3_p.bmp next bmp file is: ");
+//  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","GMHP_3_p.bmp",1));
+//  msg("trails/colorless/GMHP_3_p.bmp last bmp file is: ");
+//  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","GMHP_3_p.bmp",-1));
+//  msg("trails/colorless/zig_zag_2_p.bmp next bmp file is (wrap around): ");
+//  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","zig_zag_2_p.bmp",1));
+//  msg("trails/colorless/abstract_step_p-1-2-3-7-8.bmp last bmp file is (wrap around): ");
+//  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","abstract_step_p-1-2-3-7-8.bmp",-1));
+//  
+//  msg("trails/colorless/ next fld is: ");
+//  msgln(getOtherFld("/Nightstick/BMPs/trails/","colorless",1));
+//  msg("trails/colorless/ last fld is(wrap around): ");
+//  msgln(getOtherFld("/Nightstick/BMPs/trails/","colorless",-1));
+//  msg("trails/text next fld is (wrap around): ");
+//  msgln(getOtherFld("/Nightstick/BMPs/trails/","text",1));
+//  msg("trails/colorless/abstract_step_p-1-2-3-7-8.bmp last bmp file is (wrap around): ");
+//  msgln(getOtherFld("/Nightstick/BMPs/trails/colorless/","abstract_step_p-1-2-3-7-8.bmp",-1));
 //  msg("bitmaps in this folder: \t");
 //  msgln(i2char(bmpCountInFld(SUBFLD_TRAIL,"colorless/")));
 //  msg("bitmaps in this folder(2nd count method): \t");
@@ -26,7 +35,7 @@ void testFileIdx(){
 //  msg("folder in this folder(2nd count method): \t");
 //  msgln(i2char(fldCountInFld("trails")));
 //    charBuff[0]='\0'; // clear buffer
-//    strcpy(charBuff,MAINPATH);
+//    strcpy(charBuff,MAIN_PATH);
 //    strcat(charBuff,SUBFLD_BMP);
 //    if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){printDirectory(file,0); }
 //    file.close();
@@ -50,54 +59,73 @@ void printDirectory(File32 path, int numTabs) {
 // searchDir:   -1=last, 0 = first, 1 = next
 // char * bmpName may NOT be held by charBuff but cfg.staticBmp or cfg.trailsBmp
 // similar with the folder
-char * getOtherBmp(char * fld, char * bmpName, int8_t searchDir){
+char * getOtherFld(char * parentFld, char * fldName, int8_t searchDir){ return getOtherFile(parentFld, fldName, searchDir, TYPE_FLD);}
 
- File32 path;
- int16_t bmpMax = bmpCountInFld(fld);
- int16_t bmpCount = 0;
- int16_t findIdx = -1;
+//char * getOtherBmp(char * parentFld, char * fldName, char * bmpName, int8_t searchDir){ 
+//    pathBuff[0]='\0'; // clear buffer
+//    strcpy(pathBuff,parentFld);
+//    if(!cArrEndsWith(parentFld,'/') && !cArrStartsWith(fldName,'/')){strcat(charBuff,"/");}
+//    strcat(charBuff,fldName);
+//    return getOtherFile(pathBuff, bmpName, searchDir, TYPE_BMP); 
+//  }
 
-  if (sd.exists(fld) && path.open(fld, FILE_READ)){
+char * getOtherBmp(char * parentFld, char * bmpName, int8_t searchDir){ return getOtherFile(parentFld, bmpName, searchDir, TYPE_BMP); }
+ 
+char * getOtherFile(char * parentFld, char * fileNameRaw, int8_t searchDir, uint8_t filetype ){ // searchDir is for search direction not directory!
+   char fileName[MAXFILECHARS];
+   strcpy(fileName,fileNameRaw); // safety measure to not alternate the input
+   if(filetype == TYPE_FLD && cArrStartsWith(fileName, '/')){cArrTrimLeft(fileName);}
+   if(filetype == TYPE_FLD &&   cArrEndsWith(fileName, '/')){cArrTrimRight(fileName);}
+   File32 path;
+   int16_t fileMax;
+   if(filetype == TYPE_BMP && searchDir != 0){ fileMax = bmpCountInFld(parentFld);}
+   else if(filetype == TYPE_FLD && searchDir != 0){ fileMax = fldCountInFld(parentFld);}
+   int16_t fileCount = 0;
+   int16_t findIdx = -1;
+    msg("debug print parentFld: "); msgln(parentFld);
+    msg("debug print file raw: "); msgln(fileNameRaw);
+    msg("debug print file: "); msgln(fileName);
+   if (sd.exists(parentFld) && path.open(parentFld, FILE_READ)){
       if(path.isDir()){
       while(true) {
         //if(currentIdx != -1 ){ lastIdx = currentIdx;}
          File32 entry =  path.openNextFile();
         if (! entry) {break; }
         entry.getName(charBuff,sizeof(charBuff));
-        if(isBmp(charBuff)&& entry.isFile()){
+        if((isBmp(charBuff)&& entry.isFile() && filetype == TYPE_BMP) || (entry.isDir() && filetype == TYPE_FLD)){
           
           if(searchDir == 0){findIdx = 0; break;} // return first bmp name 
-          if(strcmp(bmpName,charBuff) == 0){ 
-                 if(searchDir == -1 && bmpCount == 0){findIdx = bmpMax-1; break;} // get name by bmpCount index = maxCount-1
-            else if(searchDir == -1 && bmpCount != 0){findIdx = bmpCount-1; break;}
-            else if(searchDir ==  1 && bmpCount == bmpMax-1){findIdx = 0; break;} // roll over and get first bmp 
-            else if(searchDir ==  1 && bmpCount <  bmpMax-1){findIdx = bmpCount+1; break;} 
+          if(strcmp(fileName,charBuff) == 0){ 
+                 if(searchDir == -1 && fileCount == 0){findIdx = fileMax-1; break;} // get name by fileCount index = maxCount-1
+            else if(searchDir == -1 && fileCount != 0){findIdx = fileCount-1; break;}
+            else if(searchDir ==  1 && fileCount == fileMax-1){findIdx = 0; break;} // roll over and get first bmp 
+            else if(searchDir ==  1 && fileCount <  fileMax-1){findIdx = fileCount+1; break;} 
           }
-          bmpCount++;
+          fileCount++;
         }
       }
     }
   }
   path.close();
   if(findIdx == -1){charBuff[0] = '\0';return charBuff;}
-  else {return getBmpNameByIdxCount(fld, findIdx);}
+  else {return getFileNameByIdxCount(parentFld, findIdx, filetype);}
 }
-//(void) getBmpNameByIdxCount(fld, bmpCountIdx)
 
-void printSubFld(char * fld){
- File32 path;  
-if (sd.exists(fld) && path.open(fld, FILE_READ)){
-    while(true) {
-       File32 entry =  path.openNextFile();
-      if (! entry) { msgln("**nomorefiles**"); break; }
-      if(entry.isDir()){
-        entry.getName(charBuff,sizeof(charBuff));
-        msgln(charBuff);
-        }
-    }
-  }
-  path.close();
-}
+
+//void printSubFld(char * fld){
+// File32 path;  
+//if (sd.exists(fld) && path.open(fld, FILE_READ)){
+//    while(true) {
+//       File32 entry =  path.openNextFile();
+//      if (! entry) { msgln("**nomorefiles**"); break; }
+//      if(entry.isDir()){
+//        entry.getName(charBuff,sizeof(charBuff));
+//        msgln(charBuff);
+//        }
+//    }
+//  }
+//  path.close();
+//}
 
 
 //void printBmpsInFld(char * fld){
@@ -115,30 +143,17 @@ if (sd.exists(fld) && path.open(fld, FILE_READ)){
 //  
 //}
 //
-//void printSubFld(char * fld){
-// File32 path;  
-//if (sd.exists(fld) && path.open(fld, FILE_READ)){
-//    while(true) {
-//       File32 entry =  path.openNextFile();
-//      if (! entry) { msgln("**nomorefiles**"); break; }
-//      if(entry.isDir()){
-//        entry.getName(charBuff,sizeof(charBuff));
-//        msgln(charBuff);
-//        }
-//    }
-//  }
-//  path.close();
-//}
-char * buildtBmpFld(char * categoryFld,const char * subFld){
 
-    (void)buildtCategoryFld(categoryFld);
-    if(subFld[0] != '/'){strcat(charBuff,"/");}
+char * buildBmpFld(char * categoryFld,const char * subFld){
+
+    (void)buildCategoryFld(categoryFld);
+    if(subFld[0] != '/' && !cArrEndsWith(categoryFld,'/')){strcat(charBuff,"/");}
     strcat(charBuff,subFld);
     return charBuff;
 }
-char * buildtCategoryFld(char * categoryFld){
+char * buildCategoryFld(char * categoryFld){
     charBuff[0]='\0'; // clear buffer
-    strcpy(charBuff,MAINPATH);
+    strcpy(charBuff,MAIN_PATH);
     strcat(charBuff,SUBFLD_BMP);
     if(categoryFld[0] != '/'){strcat(charBuff,"/");}
     strcat(charBuff,categoryFld);
@@ -146,9 +161,9 @@ char * buildtCategoryFld(char * categoryFld){
 }
 
 int16_t bmpCountInFld(char * fullFldPath){return filetypeInFld(fullFldPath,TYPE_BMP);}
-int16_t bmpCountInFld(char * categoryFld, char * subFld){ return filetypeInFld(buildtBmpFld(categoryFld,subFld),TYPE_BMP);}
+int16_t bmpCountInFld(char * categoryFld, char * subFld){ return filetypeInFld(buildBmpFld(categoryFld,subFld),TYPE_BMP);}
 int16_t fldCountInFld(char * path){
-  if( cArrIndexOf((cArrStartsWith(path,'/') ? &path[1] : &path[0]), '/' ) == -1){return filetypeInFld(buildtCategoryFld(path),TYPE_FLD);}
+  if( cArrIndexOf((cArrStartsWith(path,'/') ? &path[1] : &path[0]), '/' ) == -1){return filetypeInFld(buildCategoryFld(path),TYPE_FLD);}
   else{ return filetypeInFld(path,TYPE_FLD); }
 }
 
@@ -177,21 +192,22 @@ int16_t filetypeInFld(char * fldPath, uint8_t filetype){
     return fileCount;
 }
 
-char * getBmpNameByIdxCount(char * fldPath, uint16_t bmpCountIdx){
+char * getFldNameByIdxCount(char * fldPath, uint16_t fldCountIdx){return getFileNameByIdxCount(fldPath, fldCountIdx, TYPE_FLD);}
+char * getBmpNameByIdxCount(char * fldPath, uint16_t bmpCountIdx){return getFileNameByIdxCount(fldPath, bmpCountIdx, TYPE_BMP);}
+
+char * getFileNameByIdxCount(char * fldPath, uint16_t fileCountIdx, uint8_t filetype){
   File32 path;
   bool searchErr = true;
-  uint16_t bmpCount = 0; 
+  uint16_t fileCount = 0; 
   if (sd.exists(fldPath) && path.open(fldPath, FILE_READ)){
     if(path.isDir()){
       while(true){
           File32 entry =  path.openNextFile();
           if (! entry) { break; }
-          if(entry.isFile()){ //#define TYPE_BMP 1
-            entry.getName(charBuff,sizeof(charBuff));
-            if(isBmp(charBuff)){
-              if(bmpCount == bmpCountIdx){searchErr = false; break;}
-              bmpCount++;
-            }
+          entry.getName(charBuff,sizeof(charBuff));
+          if((entry.isFile() && isBmp(charBuff) && filetype == TYPE_BMP) || (entry.isDir() && filetype == TYPE_FLD)){
+            if(fileCount == fileCountIdx){searchErr = false; break;}
+            fileCount++;
           }
       }
     }
