@@ -186,7 +186,6 @@ void setup(){
   if(DEBUG){while (!Serial.available()) { yield();}}
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
-  testFileIdx();
   setup_Config(); // find and load config.csv from SD card or write new if not found
   setup_Inputs();
   setup_Batt();

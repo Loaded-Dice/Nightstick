@@ -17,15 +17,7 @@ void setup_Config(){ // try to find the config file on the SD card and read the 
   strcat(charBuff,CONFIGNAME);
     if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){readCfg(); }
     else {  writeCfg();  }
-/*
-if(chkFldAndBmp(SUBFLD_STATIC,cfg.staticFolder,cfg.staticBmp) || chkFldAndBmp(SUBFLD_TRAIL,cfg.trailsFolder,cfg.trailsBmp)){
-     writeCfg(); 
-     Serial.println("config rewritten");
-}
- Serial.print("static fld & bmp \t\t");Serial.print(cfg.staticFolder); Serial.print("\t"); Serial.println(cfg.staticBmp);
 
- Serial.print("trail fld & bmp \t\t");Serial.print(cfg.trailsFolder); Serial.print("\t"); Serial.println(cfg.trailsBmp);
-*/
 }
 
 int8_t chkOrMkDir(char*  chkpath){
@@ -58,14 +50,12 @@ void readCfg(){
         if (!parseLine(charBuff, n)) { msgln("parseLine failed");}
   }
   file.close();
-  chkBmpsAndFolders();
-  //write cfg if ok
+  chkBmpsAndFolders(); // see at SD.ino tab
 }
 
 bool parseLine(char* buff, uint16_t lineLen) {
 
   bool parseErr = false;
-
     // Assuming all .csv lines ending with \r\n we will replace \r 
     // with the seperator char to also get the last element as a token 
     // and then replace \n with null char to end the  char array
@@ -106,7 +96,6 @@ bool parseLine(char* buff, uint16_t lineLen) {
       return true;
 }
 
-
 int16_t findProperty(char* str){
   for(uint8_t i = 0; i < cfgInfoCount; i++){
     getCfgInfo(i);
@@ -119,18 +108,13 @@ int16_t findProperty(char* str){
 void getCfgInfo(uint8_t index){ if(index < cfgInfoCount){ memcpy_P(&cfgEntry, &cfgEntryArray[index], sizeof(cfgEntry));}}
 
 void writeCfg(){
+  
   msgln("Writing new config file");
   charBuff[0]='\0'; // clear buffer
   toCharBuff(MAIN_PATH,CONFIGNAME,true);
-//  strcpy(charBuff,MAIN_PATH);
-//  strcat(charBuff,"/");
-//  strcat(charBuff,CONFIGNAME);
   
     if(sd.exists(charBuff)){sd.remove(charBuff);} // remove old config file
-
     if (!file.open(charBuff, FILE_WRITE)) {  msgln("open failed"); }
-
-    
   for(uint8_t entryIdx = 0; entryIdx < cfgInfoCount; entryIdx++){
     
       getCfgInfo(entryIdx);
@@ -153,51 +137,4 @@ void writeCfg(){
   }
   file.close();
   msgln("new config.csv created");
-  
  }
-
-//------------------------------------------------------------------------------------  checking config folders and bmp for existance and otherwise assign first found
-
-
-void chkBmpsAndFolders(){
-
-bool rewriteCfg = false;
-  if(!validPath(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true),  cfg.trailsFolder)){
-    strcpy(cfg.trailsFolder, getOtherFld(FULLPATH_TRAILS,  cfg.trailsFolder , 0));
-    rewriteCfg = true;
-    }
-  if(!validPath(toCharBuff(pathBuff, cfg.trailsBmp, true), cfg.trailsBmp)){
-    strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true) ,cfg.trailsBmp,0));
-    rewriteCfg = true;
-    }
-  if(!validPath(toPathBuff(FULLPATH_STATIC,  cfg.staticFolder, true),  cfg.staticFolder)){
-    strcpy(cfg.staticFolder, getOtherFld(FULLPATH_STATIC,  cfg.staticFolder , 0));
-    rewriteCfg = true;
-    }
-  if(!validPath(toCharBuff(pathBuff, cfg.staticBmp, true), cfg.staticBmp)){
-    strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC ,cfg.staticFolder,true),cfg.staticBmp,0));
-    rewriteCfg = true;
-    }
-  if(rewriteCfg){writeCfg();}
-  
-}
-//groupFld == NULL || 
-char * toCharBuff(char* cArr1, char* cArr2, bool chkSlash){return toBuff(cArr1,cArr2,charBuff,chkSlash);}
-char * toCharBuff(char* cArr1, char* cArr2){return toBuff(cArr1,cArr2,charBuff,false);}
-char * toPathBuff(char* cArr1, char* cArr2, bool chkSlash){return toBuff(cArr1,cArr2,pathBuff,chkSlash);}
-char * toPathBuff(char* cArr1, char* cArr2){return toBuff(cArr1,cArr2,pathBuff,false);}
-
-char * toBuff(char* cArr1, char* cArr2, char* targetArr, bool chkSlash){
-  targetArr[0]='\0';
-  strcpy(targetArr, cArr1);
-  if(chkSlash && !cArrEndsWith(cArr1,'/') && !cArrStartsWith(cArr2,'/')){strcat(targetArr,"/");}
-  strcat(targetArr, cArr2);
-  return targetArr;
-}
-
-
-bool validPath(char * fullPath, char * fullPathEndFile){
-  if(strcmp(fullPathEndFile,NULL) == 0 || strcmp(fullPathEndFile," ") == 0 || strcmp(fullPathEndFile,"-") == 0){return false;}
-  if(sd.exists(fullPath)){return true;}
-  else {return false;}
-}
