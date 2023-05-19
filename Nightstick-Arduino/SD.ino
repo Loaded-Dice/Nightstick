@@ -5,20 +5,26 @@ void setup_SD(){
     }
 }
 void testFileIdx(){
-  msgln("Testing print bmps in folder for /Nightstick/BMPs/trails/colorless/");
-  printBmpsInFld("/Nightstick/BMPs/trails/colorless/");
-  msgln("");
-  msg("bitmaps in this folder: \t");
-  msgln(i2char(bmpCountInFld(SUBFLD_TRAIL,"colorless/")));
-  msg("bitmaps in this folder(2nd count method): \t");
-  msgln(i2char(bmpCountInFld("/Nightstick/BMPs/trails/colorless/")));
-  msgln("");
-  msgln("Testing print sub fld in folder for /Nightstick/BMPs/trails/");
-  printSubFld("/Nightstick/BMPs/trails/");
-  msg("folder in this folder: \t");
-  msgln(i2char(fldCountInFld("/Nightstick/BMPs/trails/")));
-  msg("folder in this folder(2nd count method): \t");
-  msgln(i2char(fldCountInFld("trails")));
+//  msgln("Testing print bmps in folder for /Nightstick/BMPs/trails/colorless/");
+  msg("trails/colorless/GMHP_3_p.bmp next bmp file is: ");
+  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","GMHP_3_p.bmp",1));
+  msg("trails/colorless/GMHP_3_p.bmp last bmp file is: ");
+  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","GMHP_3_p.bmp",-1));
+  msg("trails/colorless/zig_zag_2_p.bmp next bmp file is (wrap around): ");
+  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","zig_zag_2_p.bmp",1));
+  msg("trails/colorless/abstract_step_p-1-2-3-7-8.bmp last bmp file is (wrap around): ");
+  msgln(getOtherBmp("/Nightstick/BMPs/trails/colorless/","abstract_step_p-1-2-3-7-8.bmp",-1));
+//  msg("bitmaps in this folder: \t");
+//  msgln(i2char(bmpCountInFld(SUBFLD_TRAIL,"colorless/")));
+//  msg("bitmaps in this folder(2nd count method): \t");
+//  msgln(i2char(bmpCountInFld("/Nightstick/BMPs/trails/colorless/")));
+//  msgln("");
+//  msgln("Testing print sub fld in folder for /Nightstick/BMPs/trails/");
+//  printSubFld("/Nightstick/BMPs/trails/");
+//  msg("folder in this folder: \t");
+//  msgln(i2char(fldCountInFld("/Nightstick/BMPs/trails/")));
+//  msg("folder in this folder(2nd count method): \t");
+//  msgln(i2char(fldCountInFld("trails")));
 //    charBuff[0]='\0'; // clear buffer
 //    strcpy(charBuff,MAINPATH);
 //    strcat(charBuff,SUBFLD_BMP);
@@ -41,20 +47,42 @@ void printDirectory(File32 path, int numTabs) {
      entry.close();
    }
 }
-void printBmpsInFld(char * fld){
+// searchDir:   -1=last, 0 = first, 1 = next
+// char * bmpName may NOT be held by charBuff but cfg.staticBmp or cfg.trailsBmp
+// similar with the folder
+char * getOtherBmp(char * fld, char * bmpName, int8_t searchDir){
+
  File32 path;
- 
-if (sd.exists(fld) && path.open(fld, FILE_READ)){
-    while(true) {
-       File32 entry =  path.openNextFile();
-      if (! entry) { msgln("**nomorefiles**"); break; }
-      entry.getName(charBuff,sizeof(charBuff));
-      if(isBmp(charBuff)&& entry.isFile()){msgln(charBuff);}
+ int16_t bmpMax = bmpCountInFld(fld);
+ int16_t bmpCount = 0;
+ int16_t findIdx = -1;
+
+  if (sd.exists(fld) && path.open(fld, FILE_READ)){
+      if(path.isDir()){
+      while(true) {
+        //if(currentIdx != -1 ){ lastIdx = currentIdx;}
+         File32 entry =  path.openNextFile();
+        if (! entry) {break; }
+        entry.getName(charBuff,sizeof(charBuff));
+        if(isBmp(charBuff)&& entry.isFile()){
+          
+          if(searchDir == 0){findIdx = 0; break;} // return first bmp name 
+          if(strcmp(bmpName,charBuff) == 0){ 
+                 if(searchDir == -1 && bmpCount == 0){findIdx = bmpMax-1; break;} // get name by bmpCount index = maxCount-1
+            else if(searchDir == -1 && bmpCount != 0){findIdx = bmpCount-1; break;}
+            else if(searchDir ==  1 && bmpCount == bmpMax-1){findIdx = 0; break;} // roll over and get first bmp 
+            else if(searchDir ==  1 && bmpCount <  bmpMax-1){findIdx = bmpCount+1; break;} 
+          }
+          bmpCount++;
+        }
+      }
     }
   }
   path.close();
-  
+  if(findIdx == -1){charBuff[0] = '\0';return charBuff;}
+  else {return getBmpNameByIdxCount(fld, findIdx);}
 }
+//(void) getBmpNameByIdxCount(fld, bmpCountIdx)
 
 void printSubFld(char * fld){
  File32 path;  
@@ -70,6 +98,37 @@ if (sd.exists(fld) && path.open(fld, FILE_READ)){
   }
   path.close();
 }
+
+
+//void printBmpsInFld(char * fld){
+// File32 path;
+// 
+//if (sd.exists(fld) && path.open(fld, FILE_READ)){
+//    while(true) {
+//       File32 entry =  path.openNextFile();
+//      if (! entry) { msgln("**nomorefiles**"); break; }
+//      entry.getName(charBuff,sizeof(charBuff));
+//      if(isBmp(charBuff)&& entry.isFile()){msgln(charBuff);}
+//    }
+//  }
+//  path.close();
+//  
+//}
+//
+//void printSubFld(char * fld){
+// File32 path;  
+//if (sd.exists(fld) && path.open(fld, FILE_READ)){
+//    while(true) {
+//       File32 entry =  path.openNextFile();
+//      if (! entry) { msgln("**nomorefiles**"); break; }
+//      if(entry.isDir()){
+//        entry.getName(charBuff,sizeof(charBuff));
+//        msgln(charBuff);
+//        }
+//    }
+//  }
+//  path.close();
+//}
 char * buildtBmpFld(char * categoryFld,const char * subFld){
 
     (void)buildtCategoryFld(categoryFld);
@@ -116,6 +175,30 @@ int16_t filetypeInFld(char * fldPath, uint8_t filetype){
     }
     path.close();
     return fileCount;
+}
+
+char * getBmpNameByIdxCount(char * fldPath, uint16_t bmpCountIdx){
+  File32 path;
+  bool searchErr = true;
+  uint16_t bmpCount = 0; 
+  if (sd.exists(fldPath) && path.open(fldPath, FILE_READ)){
+    if(path.isDir()){
+      while(true){
+          File32 entry =  path.openNextFile();
+          if (! entry) { break; }
+          if(entry.isFile()){ //#define TYPE_BMP 1
+            entry.getName(charBuff,sizeof(charBuff));
+            if(isBmp(charBuff)){
+              if(bmpCount == bmpCountIdx){searchErr = false; break;}
+              bmpCount++;
+            }
+          }
+      }
+    }
+  }
+  if(searchErr) {charBuff[0] = '\0';}
+  path.close();
+  return charBuff;
 }
 
 // how to load bmp:
