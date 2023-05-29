@@ -122,8 +122,8 @@ FASTLED_USING_NAMESPACE
 
 #define LED_BLE       7
 #define LED_TEST      8   // For testing new stuff
-uint8_t ledMode = LED_TEST;
-uint8_t ledModeLast = LED_TEST;
+uint8_t ledMode = LED_STATIC;// LED_TEST; //
+uint8_t ledModeLast = LED_STATIC;// LED_TEST;
 CRGB leds[NUM_LEDS];
 CRGBPalette16 currentPalette = OceanColors_p;//PartyColors_p
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);//254
@@ -200,8 +200,8 @@ File32 file;
 #define MAXPIXEL 40000 //--> 200x200px
 #define BUFFPIXEL 512 // number of pixel to read in a row from SD
 uint8_t pixelBuff[MAXPIXEL][3]; // --> 120kB
-int16_t buffHeight; // when bmp is loaded dimensions are kept here
-int16_t buffWidth; //
+//int16_t buffHeight; // when bmp is loaded dimensions are kept here
+//int16_t buffWidth; //
 uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
 
 

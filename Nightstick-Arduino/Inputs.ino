@@ -90,15 +90,19 @@ void btnHandler(char firstBtn, char secondBtn){
   btnResultHandler(btnResult);
 }
 void btnResultHandler(uint8_t btnCode){
-  
+  if(ledMode == LED_STATIC){ // LED_TRAIL
+
     switch (btnCode) {
-      case B_SHORT:   break;
-      case B_LONG:    break;
+      case A_SHORT: ledsChangeBmp(1);  break;
+      case A_LONG:  ledsChangeFld(1);  break;
+      case C_SHORT: ledsChangeBmp(-1);  break;
+      case C_LONG:  ledsChangeFld(-1);  break;
       case B_ULONG:   break;
       case BTN_AB:    break;
       case BTN_CB:    break;
       default:  break; 
     }
+  }
 //ledMode
   
 }

@@ -14,20 +14,21 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
     gHue++;
     //if(ledMode != ledModeLast && ledMode == LED_STATIC){chkBmpLoaded();};
     switch (ledMode) {
-      case LED_STATIC:   break;
-      case LED_TRAIL:   break;
+      case LED_STATIC: Led2Pixel_static(rotAngle); drawRamPixel(true);  break;
+      case LED_TRAIL: Led2Pixel_trails(rotAngle);   break; // only for testing Led2Pixel_static is for static bmps!
       case LED_ANI:  break;
       case LED_FIRE: make_fire();  break;
       case LED_BRIGHT:  break;
       case LED_BATT:  break;
       case LED_BLE:  break;
-      case LED_TEST: rainbow(); break;
+      case LED_TEST:  break;
       default:  break; 
     }
   ledsShow();
   }
-  ledModeLast = ledMode;
+  ledModeLast = ledMode; 
 }
+//rollStaticTest(); 
 
 void fastToNeo(){for(int i = 0; i < NUM_LEDS; i++){ strip.setPixelColor(i, leds[i].r, leds[i].g, leds[i].b); }}
 

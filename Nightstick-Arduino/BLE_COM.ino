@@ -21,10 +21,12 @@ void setup_BLE_COM(){
 }
 
 void main_BLE_COM(){ // no timing function to read message asap
-   readBLE();
-   bleMsgHandler();
-   serialHandler();
+   if(bleMode == BLE_CONN){
+     readBLE();
+     bleMsgHandler();
+   }
    checkForSerial();
+   serialHandler();
 }
 
 void startBLE(void){
@@ -112,7 +114,7 @@ void readBLE(){
           else{bleuart.read(); }
           }
         if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
-        if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
+
         newBleData=true;
 
     }
@@ -143,7 +145,7 @@ void bleMsgHandler(){
     else if(strcmp(comBufIn, "REF_3V0")    == 0){analogReference(AR_INTERNAL_3_0);}
     else if(strcmp(comBufIn, "DEPTH10")    == 0){analogReadResolution(10);}
     else if(strcmp(comBufIn, "DEPTH12")    == 0){analogReadResolution(12);}    
-    else if(strcmp(comBufIn, "TESTHALLO")    == 0){test=!test; sendBLE(test ? "Test on" : "Test off");}    
+    //else if(strcmp(comBufIn, "TESTHALLO")    == 0){test=!test; sendBLE(test ? "Test on" : "Test off");}    
     else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-\n"); }
     comBufIn[0]='\0';
     newBleData = false;
@@ -152,12 +154,16 @@ void bleMsgHandler(){
 
 void checkForSerial(){ // ------------------------- SERIAL read  115200 baud 
     if (Serial && !newSerialData && Serial.available() > 0) {
-        char rc = Serial.read();
-        if(rc >= 33 && rc <= 126  && !isControl(rc)) comBufIn[strlen(comBufIn)] = rc; comBufIn[strlen(comBufIn)+1] = '\0';
-        if(strlen(comBufIn)>= sizeof(comBufIn)-1){ newSerialData=true;} // check for buffer overflow
-        else if(rc == TERM_CHAR){comBufIn[sizeof(comBufIn)] = '\0'; newSerialData=true; } // '\n' = New Line = Line Feed = 10 (Dec) = 0A (Hex)
+       int n_bytes = Serial.available();
+        for(int i = 0; i < n_bytes; i++){ 
+          if(i < SIZE(comBufIn)){comBufIn[i] = Serial.read();}  // overflow protection
+          else{Serial.read(); }
+          }
+        if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
+        newSerialData=true;
     }
 }
+
 
 void serialHandler(){
   if(Serial && newSerialData){
@@ -176,6 +182,7 @@ void serialHandler(){
       if(isInt(comBufIn)){msgln(comBufIn);Bluefruit.setConnLedInterval(convInt);}
       }
       else if(strncmp (comBufIn, "LED", 3)  == 0 ){setBoardLed(comBufIn[3], comBufIn[4]);} // LEDR1 for Red channel high
+    else if(isInt(comBufIn) && convInt < NUM_LEDS && convInt >= 0){ledsClear(); leds[convInt] = CRGB::Red; ledsShow(); comBufIn[0] = '\0';} 
     else{msg("UNKNOWN CMD:  ");msg(comBufIn); msgln("  \n");}
 
     newSerialData=false;

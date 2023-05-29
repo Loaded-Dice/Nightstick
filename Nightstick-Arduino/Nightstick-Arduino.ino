@@ -81,7 +81,7 @@ To do:
     - when SD card is empty create folder structre and Files: MAIN_PATH, MAIN_PATH/BMPs, MAIN_PATH/System, MAIN_PATH/readme.txt, MAIN_PATH/config.csv (config done!) ...
     - implement the use of colorpalettes from FastLed
     - implement battery low animation 
-    - in Led2Pixel() uint16_t ledPixelPos[NUM_LEDS][n]; where n=0 --> bmp x pos n=1 --> bmp y pos for each led
+    - in Led2Pixel_static() uint16_t ledPixelPos[NUM_LEDS][n]; where n=0 --> bmp x pos n=1 --> bmp y pos for each led
       currently ledPixelPos is rounded to thethe next whole pixel - instead of rounding directly multiply x&y floats by 10 an then rounding the value
       use the extra precision to implement a blending function to blend with the surrounding pixels (smoother transition)
     - Don't output data to stick like a simple line of LEDs. Introduce a virtual_NUM_LEDS (use the 4 led strips in the flower head as one)--> Look at LEDs mirrorStick()  
@@ -168,7 +168,7 @@ To do:
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
-  if(DEBUG){while (!Serial.available()) { yield();}}
+ // if(DEBUG){while (!Serial.available()) { yield();}}
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
   setup_Config(); // find and load config.csv from SD card or write new if not found
@@ -183,9 +183,28 @@ void setup(){
 }
 
 void loop(){ // all main functions have timining structures integrated
-  //main_FILTER_IMU();
-  //main_LEDs();
+  main_FILTER_IMU();
+  main_LEDs();
   main_BLE_COM();
   main_Batt();
   main_Inputs();
+  testAngle();
+}
+float temp1, temp2;
+void testAngle(){
+  
+  EVERY_N_MILLIS(150) {
+//    int8_t i = NUM_LEDS / 2;
+  Serial.print(roll);
+  Serial.print("\t[ ");
+  Serial.print(convInt);
+//  Serial.print(" | ");
+//  Serial.print((float)(temp2));
+//  Serial.print(" ] \t");
+//  Serial.print("\t[ ");
+//  Serial.print((float)(ledPixelPos[i+5][0]/100.0));
+//  Serial.print(" | ");
+//  Serial.print((float)(ledPixelPos[i+5][1]/100.0));
+  Serial.println(" ] \t");
+  }
 }

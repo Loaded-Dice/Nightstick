@@ -16,7 +16,7 @@ void setup_Config(){ // try to find the config file on the SD card and read the 
   strcat(charBuff,"/");
   strcat(charBuff,CONFIGNAME);
     if (sd.exists(charBuff) && file.open(charBuff, FILE_READ)){readCfg(); }
-    else {  writeCfg();  }
+    else {  writeCfg(); readCfg(); }
 
 }
 
