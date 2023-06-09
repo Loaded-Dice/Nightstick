@@ -15,7 +15,7 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
     //if(ledMode != ledModeLast && ledMode == LED_STATIC){chkBmpLoaded();};
     switch (ledMode) {
       case LED_STATIC: Led2Pixel_static(); drawRamPixel(true);  break;
-      case LED_TRAIL: Led2Pixel_trails(rotAngle);   break; // only for testing Led2Pixel_static is for static bmps!
+      case LED_TRAIL: Led2Pixel_trails();   break; // only for testing Led2Pixel_static is for static bmps!
       case LED_ANI:  break;
       case LED_FIRE: make_fire();  break;
       case LED_BRIGHT:  break;
@@ -28,7 +28,7 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
   }
   ledModeLast = ledMode; 
 }
-//rollStaticTest(); 
+
 
 void fastToNeo(){for(int i = 0; i < NUM_LEDS; i++){ strip.setPixelColor(i, leds[i].r, leds[i].g, leds[i].b); }}
 
@@ -43,198 +43,149 @@ void mirrorStick(){
       else{leds[127+i] = leds[126-i]; }
   }
 }
+/*
+   how to load bmp to POV display:
+   clear charBuff[] ( charBuff[0] = '\0'; )
+   create full filepath to bmp file and store it in charBuff[]
+   call BMPtoRAM(charBuff); it will analyze the header file auomaticly
+   file is now saved to ram
+   every frame update call: 
+  ---------------------------------
+  Led2Pixel_static(); to obtain newest xy position from the leds on the image
+  and then drawRamPixel(); to put the rgb data corrsponding to the XY data into the led array
+  finally call ledsShow() to update the stick
 
-//void chkBmpLoaded(){
-//  
-//  
-//  if(strcmp(cfg.staticBmp,"") == 0 || strcmp(cfg.staticBmp,"-") == 0 || strcmp(cfg.staticFolder,"") == 0 || strcmp(cfg.staticFolder,"-") == 0){//search for first bmp - open nextFile until path != dir 
-//
-//    } 
-//  if(strcmp(cfg.staticFolder,"") == 0 || strcmp(cfg.staticFolder,"-") == 0){;} 
-//  strcmp
-//}
-//
-//
-//
-//void loadFirstValid(){
-//  bool errBmp = false;
-//  File32 path;
-//  charBuff[0] = '\0';
-//  strcpy(charBuff,MAIN_PATH);
-//  strcat(charBuff,"/BMPs");
-//  if(!sd.exists(charBuff)){errBmp = true;} // throw error!
-//  else{
-//  path.open(path, FILE_READ);
-//  
-//  cfg.staticFolder[0] = '\0';
-//  cfg.staticBmp[0] = '\0';
-//  
-//  while(true){
-//    File32 entry =  path.openNextFile();
-//    if (! entry) {errBmp = true; break; }
-//    charBuff[0] = '\0';
-//    if (entry.isDir()) {
-//      entry.getName(charBuff,sizeof(charBuff)); 
-//      
-//      strcat(cfg.staticFolder,"/");
-//      strcat(cfg.staticFolder,charBuff);
-//      }
-//  
-//  }
-//  }
-//  // handle error 
-//}
+*/
 
 
-void rainbow() { fill_rainbow(leds, NUM_LEDS, gHue, 7); }// FastLED's built-in rainbow generator.
+// calculate the x & y positions of the led projected on the bmp file
+//
+
+void Led2Pixel_trails() { // angle in rad !!!
+  //1x px col / degree = M_PI/180
+}
+// grap the x & y data (rgb value) and set the led array accordingly
+void drawRamPixel(bool interpolation) {
   
-
-
-
-//---------------------------------------------------------Fire Animation (Similar to balcony lamps)
-
-uint8_t angleShift = 0; // 0 to 11
-
-const uint16_t rows = 16 ; // scrap the top rows to avoid mostly dark leds
-const uint16_t cols = 13 ; // one extra row to mash togeter with row 0
-
-
-/* Flare constants */
-const uint8_t flarerows = 6;    /* number of rows (from bottom) allowed to flare */
-const uint8_t maxflare = 6;     /* max number of simultaneous flares */
-const uint8_t flarechance = 50; /* chance (%) of a new flare (if there's room) */
-const uint8_t flaredecay = 14;  /* decay rate of flare radiation; 14 is good */
-const uint8_t FPS = 80;
-/* This is the map of colors from coolest (black) to hottest. Want blue flames? Go for it! */
-const uint32_t colors[] = {
-  0x000000, 0x100000, 0x300000, 0x600000, 0x800000, 0xA00000, 0xC02000, 0xC04000, 0xC06000, 0xC08000, 0xBC9F65
-  //0x807080
-};
-const uint8_t NCOLORS = SIZE(colors);
-
-uint8_t pix[rows][cols]; // pixel heat/color buffer
-
-uint8_t nflare = 0;
-uint32_t flare[maxflare];
-
-unsigned long t = 0; /* keep time */
-
-void make_fire() {
-  uint16_t i, j;
-  if ( t > millis() ) return;
-  t = millis() + (1000 / FPS);
-
-  // First, move all existing heat points up the display and fade
-  for ( i=rows-1; i>0; --i ) {
-    for ( j=0; j<cols; ++j ) {
-      uint8_t n = 0;
-      if ( pix[i-1][j] > 0 )
-        n = pix[i-1][j] - 1;
-      pix[i][j] = n;
+  int row, col,overRow,overCol;
+  float blendRow, blendCol;
+  CRGB p1, p2, p3, p4;
+  for (int i = 0; i < NUM_LEDS; i++) {
+    col = ledPixelPos[i][0]/100; //
+    row = ledPixelPos[i][1]/100; //
+    p1 = getPixel(col,row);
+    if(interpolation){ //Bilinear interpolation
+      blendCol = ((float)ledPixelPos[i][0]/100.0)-((int)ledPixelPos[i][0]/100.0); // range from 0 to 1
+      blendRow = ((float)ledPixelPos[i][1]/100.0)-((int)ledPixelPos[i][1]/100.0); // range from 0 to 1
+      blendCol = (blendCol-0.5)*2*255; // range from -255 to 255
+      blendRow = (blendRow-0.5)*2*255; // range from -255 to 255
+      overCol = col + ((int)blendCol/abs((int)blendCol)); // set overlay column to col +/- 1
+      overRow = row + ((int)blendRow/abs((int)blendRow)); // set overlay row to row +/- 1
+      p2 = getPixel(overCol,row);
+      p3 = getPixel(col,overRow);
+      p4 = getPixel(overCol,overRow);
+      nblend(p1,p2,(int)abs(blendCol));
+      nblend(p3,p4,(int)abs(blendCol));
+      nblend(p1,p3,(int)abs(blendRow));
     }
-  }
-
-  // Heat the bottom row
-  for ( j=0; j<cols; ++j ) {
-    i = pix[0][j];
-    if ( i > 0 ) {
-      pix[0][j] = random(NCOLORS-6, NCOLORS-2);
-    }
-  }
-
-  // flare
-  for ( i=0; i<nflare; ++i ) {
-    int x = flare[i] & 0xff;
-    int y = (flare[i] >> 8) & 0xff;
-    int z = (flare[i] >> 16) & 0xff;
-    glow( x, y, z );
-    if ( z > 1 ) {
-      flare[i] = (flare[i] & 0xffff) | ((z-1)<<16);
-    } else {
-      // This flare is out
-      for ( int j=i+1; j<nflare; ++j ) {
-        flare[j-1] = flare[j];
-      }
-      --nflare;
-    }
-  }
-  newflare();
-
-for ( i=0; i<rows; ++i ) { pix[i][0] = (pix[i][0] / 2 ) + (pix[i][12] / 2 ); //combine row 0 and 12  
-  // Set and draw
-  for ( i=0; i<rows; ++i ) {
-    for ( j=0; j<cols; ++j ) {
-      int16_t ledPos = fireMapA(i,j);
-          if(ledPos != -1){
-              leds[ledPos] = colors[pix[i][(j + angleShift) % 12]];
-              leds[fireMapB(i,j)] = colors[pix[i][(j + angleShift + 6) % 12]];
-          }
-      }
-      
-    }
-  }
-  //FastLED.show();
-}
-
-// colors[pix[rows][cols]]; --> cols+angleShift
-
-int16_t fireMapA(uint8_t row, uint8_t col){
-  uint16_t ledPos = -1;
-  if(row == 0){ledPos = 71 - col;}
-  else if(row == 13){ledPos = col;}
-  if(row > 0 && row < 13){
-         if(col == 1){ ledPos = 47 + row;}
-    else if(col == 4){ ledPos = 35 + row;}
-    else if(col == 7){ ledPos = 23 + row;}
-    else if(col == 10){ledPos = 11 + row;}
-
-  }
-  return ledPos;
-}
-
-int16_t fireMapB(uint8_t row, uint8_t col){
-  uint16_t ledPos = -1;
-  if(row == 0){ledPos = 182 + col;}
-  else if(row == 13){ledPos = 253 - col;}
-  if(row > 0 && row < 13){
-         if(col == 1){ ledPos = 192 + row;}
-    else if(col == 4){ ledPos = 204 + row;}
-    else if(col == 7){ ledPos = 216 + row;}
-    else if(col == 10){ledPos = 228 + row;}
-  }
-  return ledPos;
-}
-uint32_t isqrt(uint32_t n) {
-  if ( n < 2 ) return n;
-  uint32_t smallCandidate = isqrt(n >> 2) << 1;
-  uint32_t largeCandidate = smallCandidate + 1;
-  return (largeCandidate*largeCandidate > n) ? smallCandidate : largeCandidate;
-
-}
-
-// Set pixels to intensity around flare
-void glow( int x, int y, int z ) {
-  int b = z * 10 / flaredecay + 1;
-  for ( int i=(y-b); i<(y+b); ++i ) {
-    for ( int j=(x-b); j<(x+b); ++j ) {
-      if ( i >=0 && j >= 0 && i < rows && j < cols ) {
-        int d = ( flaredecay * isqrt((x-j)*(x-j) + (y-i)*(y-i)) + 5 ) / 10;
-        uint8_t n = 0;
-        if ( z > d ) n = z - d;
-        if ( n > pix[i][j] ) { // can only get brighter
-          pix[i][j] = n;
-        }
-      }
-    }
+    leds[i] = p1;
   }
 }
 
-void newflare() {
-  if ( nflare < maxflare && random(1,101) <= flarechance ) {
-    int x = random(0, cols);
-    int y = random(0, flarerows);
-    int z = NCOLORS - 1;
-    flare[nflare++] = (z<<16) | (y<<8) | (x&0xff);
-    glow( x, y, z );
+CRGB getPixel(uint16_t colX, uint16_t rowY){ return CRGB(pixelBuff[arrayPos(colX,rowY)][0],pixelBuff[arrayPos(colX,rowY)][1],pixelBuff[arrayPos(colX,rowY)][2]);} // recive the bmp pixel color
+
+uint16_t arrayPos(uint16_t colX, uint16_t rowY){return (colX*bmp.w+rowY);} //convert the 2D X/Y information to the flat pixelBuff layout
+
+/*
+  1) calculate X/Y bitmap pixel pos. for all vitual LED strip LEDs
+  2) invert LED order of the mini stip un the cpu side
+  3) caculate the roll16 correction but save correction as int correction=(32768-LedOff16)
+  4) apply correction to roll16 to get (int)distAngle = (int)roll16 + correction
+  5) wrap around (int)distAngle with wrap_u16() to get uint16_t and calculate the sin16(uint16_t distAngle) (sin16 input: 0 to 65335 output -32767 to 32767)
+
+*/   
+
+void Led2Pixel_static() { // angle in rad 
+
+  float halfX = (float)bmp.w / 2.0;
+  float halfY = (float)bmp.h / 2.0;
+  float xPerLed = (float)bmp.w / (float)NUM_VLEDS;
+  float yPerLed = (float)bmp.h / (float)NUM_VLEDS;
+  int halfLED = NUM_VLEDS/2;
+
+  ledVector[0] = ((float)sin16(yaw16)/32767.0) * xPerLed; // store the current led vecor
+  ledVector[1] = ((float)cos16(yaw16)/32767.0) * yPerLed; // store the current led vecor
+
+  for (int i = 0; i < halfLED ; i++) {
+    float x = ledVector[0] * i + (xPerLed / 2.0); // scale the led vector to current index  
+    float y = ledVector[1] * i + (yPerLed / 2.0); // scale the led vector to current index  
+    
+    virt2realLed(halfLED - i - 1, x + halfX,y + halfY); // side A
+    virt2realLed(halfLED + i, -x + halfX, -y + halfY);  // side B with inverted pixel vector
   }
 }
+void virt2realLed(uint16_t vIdx, float x, float y){
+  if(vIdx == 0 || vIdx == 13 || vIdx == 124 || vIdx == 137){set12RingPx(vIdx, x, y);} //set all 12 ring LED pixels
+  else if ( vIdx >= 1 && vIdx <= 12){setMiniStripsPx(vIdx, x, y, 0 );}   // cpu side mini srips ( reverse order)
+  else if ( vIdx >= 14 && vIdx <= 123){ ledPixelPos[vIdx+58][0] = x*100; ledPixelPos[vIdx+58][1] = y*100; } //multiply the XY result by 100 for blending function
+  else if ( vIdx >= 125 && vIdx <= 136 ){setMiniStripsPx(vIdx, x, y, 1);}  // battery side mini srips
+}
+
+
+
+void set12RingPx(uint16_t vIdx, float vx, float vy){
+  
+  for(uint8_t i = 0; i < 12; i++){
+    float coef = 0;
+    uint16_t real1stIdx;
+       if(vIdx == 0  ){ coef = getOffScaling( wrap_u16(ringOff16[0] + angle16Ring[i])); real1stIdx = 0;}
+  else if(vIdx == 13 ){ coef = getOffScaling( wrap_u16(ringOff16[1] - angle16Ring[i])); real1stIdx = 60; }
+  else if(vIdx == 124){ coef = getOffScaling( wrap_u16(ringOff16[2] + angle16Ring[i])); real1stIdx = 182; }
+  else if(vIdx == 137){ coef = getOffScaling( wrap_u16(ringOff16[3] - angle16Ring[i])); real1stIdx = 242; }
+  //multiply the XY result by 100 for blending function
+  ledPixelPos[real1stIdx + i][0] = (vx + ( ledVector[1] * coef ))*100; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
+  ledPixelPos[real1stIdx + i][1] = (vy + (-ledVector[0] * coef ))*100; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
+  }
+}
+
+void setMiniStripsPx(uint16_t vIdx, float vx, float vy, uint8_t side){
+  
+  uint16_t rIdx; // real led index of the nightstick
+  for(int i = 0; i < 4; i++){
+      if(side == 0){ rIdx = stripLedPos[side][i] - vIdx;} // to invert the led order
+      else{ rIdx = stripLedPos[side][i] + vIdx;}
+      float coef = getOffScaling(stripOff16[side][i]);
+  ledPixelPos[rIdx][0] = (vx + ( ledVector[1] * coef ))*100; //multiply the XY result by 100 for blending function
+  ledPixelPos[rIdx][1] = (vy + (-ledVector[0] * coef ))*100; //multiply the XY result by 100 for blending function
+  }
+}
+
+//float sinRingDist(uint16_t ringOffFrist, int rotDir, uint8_t relIdx){ return ((float)sin16(wrap_u16(ringOffFrist + (rotDir * angle16Ring[relIdx]))))/32767.0;}
+uint16_t wrap_u16(int unwrapped_u16){return (uint16_t)(unwrapped_u16 % 65536);}
+
+//input: led offset as uint16_t 0 to 65535 --> 0° to 360°
+//output -6 to 6 which is the scaling factor for the 90° rotated led-pixel-distance vector
+float getOffScaling(int ledOff16){return  ((float)sin16( wrap_u16(roll16 +(32768 - ledOff16)) )/32767.0) * -rollDistMaxPx;} // 32768 is 180° where the sin is 0
+  
+/*
+INFO
+//create 1 pixel vector from center pixel (P1) to next pixel (P2) --> Vector = P2-P1
+//ad rotate vector by 90° cw --> Vector_X * -1, then swap Vector_X & Vector_Y
+// then scale the vector to max pixel offset distance 90° from stick (max dist 15mm => 5 pixel) (constant: maxRollPx)
+
+        // vector of one LED distance pointing from the center to cpu side
+        ledVector[0] 
+        ledVector[1]
+        // vecor of one LED distance but perpendicular (clockwise) to the stick
+        ledVecor 90° cw[0]  =  ledVector[1] // for roll angle distance of CPU side LEDs
+        ledVecor 90° cw[1]  = -ledVector[0] // for roll angle distance of CPU side LEDs
+        // vecor of one LED distance but perpendicular (counter clockwise) to the stick
+        ledVecor 90° ccw[0] = -ledVector[1] // for roll angle distance of battery side LEDs
+        ledVecor 90° ccw[1] =  ledVector[0] // for roll angle distance of battery side LEDs
+        // multiply by rollDistMaxPx and then scale down by specific sin() of the difference between the roll angle and each LEDs offset angle
+        angle16Ring[0 to 11] relative led offset
+        getOffScaling();
+        retrive scaling factor for ring leds:
+                          wrap to uint16_t , starting offset 1st led, -1 or 1  relative offset to 1st ring led
+        float a = getOffScaling( wrap_u16(ringOff16[1 to 4] + ring_Data_direction * angle16Ring[0 to 11])
+*/

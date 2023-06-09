@@ -113,8 +113,8 @@ FASTLED_USING_NAMESPACE
 #define FRAMES_PER_SECOND  100 //
 #define max_bright 50
 #define min_bright 10
-#define NUM_LEDS   254 // 110 Leds @ center stick
-#define NUM_VLEDS  138 //
+#define NUM_LEDS   254 // real number of LEDs
+#define NUM_VLEDS  138 // virtual number of LEDs. used for a correct roll and yaw 2D projection
 
 #define LED_OFF       0
 #define LED_STATIC    1
@@ -137,6 +137,20 @@ uint8_t gHue = 0;
 //uint8_t BRIGHTNESS = 40;// 40; // 40 = 155mA ; 3,8h at 600mA
 uint8_t gCurrentPatternNumber = 0;
 
+uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
+float ledVector[2] = {0.0,0.0};
+
+//shall get overwritten by calibration:
+//uint16_t ringOff16[4] & uint16_t stripOff16[2][4]
+// would be 12 calibration points
+// offset scaled to uint_16 for first ring LEDs (leds to light up in calib: #0,#60,#182,#242)
+
+uint16_t ringOff16[4] = {38229,    36408,   40049,   18204}; //first leds roll offset for each led-ring. other offsets are calculated with angle16Ring[]
+int angle16Ring[12] = { 0,   3641,  7282,  16384, 20025, 23665, 32768, 36408, 40049, 49151, 52792, 56433}; // uint16_t angle offset in led ring relative to first LED within the ring
+float rollDistMaxPx = 6.0;// max pixel distaance for roll angle 2D projection
+//                                cpu side                          battery side
+uint16_t stripOff16[2][4] =  {{25486,  9102,  58253, 41870},{30947,  47331, 63715, 14563}};//mini strip led roll offset scaled to uint_16 for mini strips cpu side (leds to light up in calib: #12 ->#23, #24 ->#35, #36 ->#47, #48 ->#59 )
+const uint16_t stripLedPos[2][4] = {{24,     36,    48,    60, } ,{69,     81,    93,    105 }}; // mini strip LED starting position
 //--------------------------------------------------------------------------------------------------------------------- BLE_COM
 //---==={DEFINITIONS - BLE_COM}===---//
 #include <bluefruit.h>
@@ -162,31 +176,15 @@ bool newSerialData =false;
 //---==={DEFINITIONS - Filter_IMU}===---//
 #include <MahonyAHRS.h>
 #include <Arduino_LSM6DS3.h>
-#include "helper_3dmath.h"
-#define AXIS_X {1,0,0}
-#define AXIS_Y {0,1,0}
-#define AXIS_Z {0,0,1}
 Mahony filter;
 
 //---==={VARIABLES - Filter_IMU}===---//
-VectorFloat accl;
-VectorFloat gyro;
-VectorFloat axisStick = AXIS_X; // change depending on µC orientation inside the Nightstick
-float tiltAngle;
-float rotAngle;
-float rotAngleLast;
-float rotAngle2;
+
 float roll, pitch, yaw;
 uint16_t roll16,pitch16,yaw16;
-float heading;
+                // NOT NEEDED ANYMORE
 float ax, ay, az;
 float gx, gy, gz;
-Quaternion qt;
-VectorFloat gravity;
-//for horizontal 2d projection of the mini led array distance to the the stick arounf the  roll angle
-//float rollOffStrip_12, rollOffStrip_24, rollOffStrip_36, rollOffStrip_48, rollOffStrip_194, rollOffStrip_206, rollOffStrip_218, rollOffStrip_230;
-
-
 
 //--------------------------------------------------------------------------------------------------------------------- SD
 //---==={DEFINITIONS - SD}===---//
@@ -209,11 +207,6 @@ File32 file;
 #define MAXPIXEL 40000 //--> 200x200px
 #define BUFFPIXEL 512 // number of pixel to read in a row from SD
 uint8_t pixelBuff[MAXPIXEL][3]; // --> 120kB
-//int16_t buffHeight; // when bmp is loaded dimensions are kept here
-//int16_t buffWidth; //
-uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
-float ledVector[2] = {0.0,0.0};
-//uint16_t vLedPixelPos[NUM_VLEDS][2]; // x and y position 
 
 struct bmpInfo{
     File32 file;
@@ -279,8 +272,6 @@ cfgFile cfg;
 struct cfgInfos{  char cfgVarName[MAXFILECHARS]; uint8_t varType;};
 cfgInfos cfgEntry; // holds the property name & file type of entry calles by getCfgInfo(index)  - max is stored here uint8_t cfgInfoCount
 
-//static const uint8_t cfgInfoCount = 9;
-
 static const cfgInfos cfgEntryArray[] PROGMEM = { // read config file properties like name as text and value type from progmem --> for parsing values
   //                                           index
   {"Nightstick Config Start",   TYPE_NONE}, // 0
@@ -302,11 +293,3 @@ uint8_t convByte;
 int convInt;
 float convFloat;
 bool convBool;
-// uint16_t angle offset in led ring relative to first LED withing ring
-int angle16Ring[12] = { 0,   3641,  7282,  16384, 20025, 23665, 32768, 36408, 40049, 49151, 52792, 56433};
-// offset scaled to uint_16 for first ring LEDs (leds to light up in calib: #0,#60,#182,#242):
-uint16_t ringOff16[4] = {38229,    36408,   40049,   18204};
-float rollDistMaxPx = 6.0;
-//                                cpu side                          battery side
-uint16_t stripOff16[2][4] = {{25486,  9102,  58253, 41870},{30947,  47331, 63715, 14563}};// offset scaled to uint_16 for mini strips cpu side (leds to light up in calib: #12 ->#23, #24 ->#35, #36 ->#47, #48 ->#59 )
-uint16_t stripLedPos[2][4] = {{24, 36, 48, 60, } , {69,  81,  93,  105 }};
