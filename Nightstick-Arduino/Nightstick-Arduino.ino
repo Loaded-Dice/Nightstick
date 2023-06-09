@@ -5,7 +5,10 @@
            ---=={ Version 0.1.6 }==--- 
                 by Marlon Graeber
                 aka "Loaded Dice"
-           
+  You can find this code, DIY instuctions for the 
+  Nightstick, PCB files and bitmap images to display on:
+        https://github.com/Loaded-Dice/Nightstick         
+        
   IDE used Arduino 1.8.19
   Board: Seeed Studio XIAO nRF52840 BLE Sense
   Core: Seeed Studio nRF52 Boards v1.1.1 (Not the mbed -enabled core!)
@@ -30,13 +33,15 @@
   Can't programm the XIAO nRf52?
 
   when XIAO nrf is stuck and can't be programmed - double tap reset btn while powered via USB-C
-  xiao nrf should appear as flash storage in windows when sucessfull
+  xiao nrf should appear as flash storage in windows when sucessfull.
 
   Dependencies:
-  - FastLed (Version3.5 ) only used for the color, math & timing functions because hardware otuput isnt possible. The nRF52 architecture is not fully supported)
+  - FastLed (Version3.5 ) only used for the color, math & timing functions 
+    because hardware otuput is'nt possible with XIAO nRF52 and FastLED.
+    (The nRF52 architecture is not fully supported)
         https://github.com/FastLED/FastLED/
         
-  - Adafruit NeoPixel (Version 1.11.0) needed for Hardware LED data output
+  - Adafruit NeoPixel (Version 1.11.0) needed for Hardware LED data output (just a workaround)
         https://github.com/adafruit/Adafruit_NeoPixel
         
   - Bluefruit (Version 0.21.0 ) Adafruit Bluefruit nRF52 Libraries - Bluetooth Low Energy library
@@ -88,6 +93,10 @@ To do:
     - load and test the trail bitmaps ( 1 degree per pixel )
     - implemet deep sleep for µC or idle animation when not played (make this selectable in config )
     - indicate button push by single leds in the 1st ring light up
+    - create ring LED & mini strip roll angle offset detection sequence by lighting up first ring LED of each ring and first LED of each mini LED strip
+      one by one  and for each lit up LED the sick need to ged rotatet so that the LED is pointing up( right above the center line)
+      one button press sould store the roll angle value and ne next led should light up. Calibration values sould get stored in the config file
+      and loaded when the stick boots
 
   next version main PCB:
   
@@ -168,7 +177,7 @@ To do:
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
- // if(DEBUG){while (!Serial.available()) { yield();}}
+  //if(DEBUG){while (!Serial.available()) { yield();}}
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
   setup_Config(); // find and load config.csv from SD card or write new if not found
@@ -180,6 +189,16 @@ void setup(){
   memset(pixelBuff,0,sizeof(pixelBuff));  // Filling  the buffer to see at compile time what space is used and whats left - can be removed later
   //startBLE(); // debugging voltage readings & Vref
   
+  Serial.print("LED");
+  Serial.print("\t");
+  Serial.print("roll");
+  Serial.print("\t");
+  Serial.print("sin()");
+  Serial.print("\t");
+  Serial.print("roll16");
+  Serial.print("\t");
+  Serial.print("sin16()");
+  Serial.println();
 }
 
 void loop(){ // all main functions have timining structures integrated
@@ -192,19 +211,30 @@ void loop(){ // all main functions have timining structures integrated
 }
 float temp1, temp2;
 void testAngle(){
-  
   EVERY_N_MILLIS(150) {
+    Serial.print(temp1);
+    Serial.print("\t");
+    Serial.print(temp2);
+    Serial.print("\t");
+  Serial.print(bmp.w );
+  Serial.print("\t");
+  Serial.println(bmp.h );
+ }
+  
+ // EVERY_N_MILLIS(150) {
 //    int8_t i = NUM_LEDS / 2;
-  Serial.print(roll);
-  Serial.print("\t[ ");
-  Serial.print(convInt);
-//  Serial.print(" | ");
-//  Serial.print((float)(temp2));
-//  Serial.print(" ] \t");
-//  Serial.print("\t[ ");
-//  Serial.print((float)(ledPixelPos[i+5][0]/100.0));
-//  Serial.print(" | ");
-//  Serial.print((float)(ledPixelPos[i+5][1]/100.0));
-  Serial.println(" ] \t");
-  }
+//  Serial.print(convInt);
+//  Serial.print("\t");
+//  Serial.print(roll);
+//  Serial.print("\t");
+//  Serial.print((float)sin(roll));
+//  Serial.print("\t");
+//  Serial.print(roll16);
+//  Serial.print("\t");
+//  Serial.print(sin16(roll16));
+////  Serial.print((float)(ledPixelPos[i+5][0]/100.0));
+////  Serial.print(" | ");
+////  Serial.print((float)(ledPixelPos[i+5][1]/100.0));
+//  Serial.println();
+ // }
 }

@@ -11,9 +11,11 @@ void main_FILTER_IMU(){
       filter.updateIMU(gx, gy, gz, ax, ay, az);
       rotAngleLast = rotAngle;
       rotAngle = filter.getYaw(); // rotation along Z --> main rotation aka "yaw" (in degree)
-      rotAngle = RAD(rotAngle);
+      yaw16 = (uint16_t)((rotAngle+180)/360.0*65535);
+      rotAngle = RAD(rotAngle)+M_PI;
       roll = filter.getRoll(); // rotation around the stick axis
-      roll = RAD(roll);
+      roll16 = (uint16_t)((roll+180)/360.0*65535);
+      roll = RAD(roll)+M_PI;
       pitch = filter.getPitch(); // tilt towards gravity
   }
 }

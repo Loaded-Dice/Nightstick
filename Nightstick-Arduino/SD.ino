@@ -295,72 +295,8 @@ uint32_t read32(File32& f) {
   ((uint8_t *)&result)[3] = f.read(); // MSB
   return result;
 }
-// calculate the x & y positions of the led inside the bmp file
+// calculate the x & y positions of the led projected on the bmp file
 //
-//void Led2Pixel_static( float alpha1 ) { // angle in rad 
-//
-//  float halfX = bmp.w / 2;
-//  float halfY = bmp.h / 2;
-//  int halfLED = NUM_LEDS / 2;
-//  float xPerLed = halfX / halfLED;
-//  float yPerLed = halfY / halfLED;
-//  for (int i = 0; i < halfLED ; i++) {
-//    float x = (sin(alpha1) * (xPerLed * (float)i )) + halfX ;
-//    float y = (cos(alpha1) * (yPerLed * (float)i )) + halfY ;
-////    float x = ((sin16(65535.0/(M_PI*2) * alpha1) / 32767.0) * (xPerLed * (float)i )) + halfX ;
-////    float y = ((cos16(65535.0/(M_PI*2) * alpha1) / 32767.0) * (yPerLed * (float)i )) + halfY ;
-//    ledPixelPos[halfLED - i - 1][0] = (int)(x + (xPerLed/2))*100; // function would begin in center of cirle with #0 -> #0 in stip is on the outside
-//    ledPixelPos[halfLED - i - 1][1] = (int)(y + (yPerLed/2))*100;
-//    x= halfX - (x + (xPerLed/2)-halfX);
-//    y= halfY - (y + (yPerLed/2)-halfY);
-//    ledPixelPos[i + halfLED][0] = (int)(x )*100; // for 2nd half of strip center to outside is ok only adding offset
-//    ledPixelPos[i + halfLED][1] = (int)(y )*100;
-//  }
-//}
-void Led2Pixel_static( float alpha1 ) { // angle in rad 
-
-  float halfX = bmp.w / 2;
-  float halfY = bmp.h / 2;
-  int halfLED = 138 / 2; // 138 is the length of the pseudo LED array
-  float xPerLed = halfX / halfLED;
-  float yPerLed = halfY / halfLED;
-  for (int i = 0; i < halfLED ; i++) {
-    float x = (sin(alpha1) * (xPerLed * (float)i )) + halfX ;
-    float y = (cos(alpha1) * (yPerLed * (float)i )) + halfY ;
-//    float x = ((sin16(65535.0/(M_PI*2) * alpha1) / 32767.0) * (xPerLed * (float)i )) + halfX ; //sin16(angle) --> angle needs to get wrapped around uint16_t
-//    float y = ((cos16(65535.0/(M_PI*2) * alpha1) / 32767.0) * (yPerLed * (float)i )) + halfY ; //sin16(angle) --> angle needs to get wrapped around uint16_t
-    assignLedArr(halfLED - i - 1, (int)(x + (xPerLed/2))*100, (int)(y + (yPerLed/2))*100 );
-//    ledPixelPos[halfLED - i - 1][0] = (int)(x + (xPerLed/2))*100; // 
-//    ledPixelPos[halfLED - i - 1][1] = (int)(y + (yPerLed/2))*100;
-    x= halfX - (x + (xPerLed/2)-halfX);
-    y= halfY - (y + (yPerLed/2)-halfY);
-//    ledPixelPos[i + halfLED][0] = (int)(x )*100; // for 2nd half of strip center to outside is ok only adding offset
-//    ledPixelPos[i + halfLED][1] = (int)(y )*100;
-    assignLedArr(i + halfLED, (int)(x )*100, (int)(y )*100 );
-  }
-}
-// rearrange the leds
-void assignLedArr(uint16_t pseudoArrPos, uint16_t colX, uint16_t rowY){
-         if (pseudoArrPos == 0){setRealLeds(0,11,colX,rowY);} // ring1 side A
-    else if (pseudoArrPos >= 1 && pseudoArrPos <= 12){
-      uint16_t tempPos = (12-pseudoArrPos)*2+pseudoArrPos;
-      ledPixelPos[tempPos][0] = colX;     ledPixelPos[tempPos][1] = rowY;    // strip 1 side A (reverse)
-      ledPixelPos[tempPos+12][0] = colX;  ledPixelPos[tempPos+12][1] = rowY; // strip 2 side A (reverse)
-      ledPixelPos[tempPos+24][0] = colX;  ledPixelPos[tempPos+24][1] = rowY; // strip 3 side A (reverse)
-      ledPixelPos[tempPos+36][0] = colX;  ledPixelPos[tempPos+36][1] = rowY; // strip 4 side A (reverse)  
-      } // (12-in)*2+in
-    else if (pseudoArrPos == 13){setRealLeds(60,71,colX,rowY);} // ring 2 side A
-    else if (pseudoArrPos >= 14 && pseudoArrPos <= 123){ledPixelPos[pseudoArrPos+58][0] = colX; ledPixelPos[pseudoArrPos+58][1] = rowY;} // center arrays
-    else if (pseudoArrPos == 124){setRealLeds(182,193,colX,rowY);} // ring1 side B
-    else if (pseudoArrPos >= 125 && pseudoArrPos <= 136){
-        ledPixelPos[pseudoArrPos+69][0] = colX;     ledPixelPos[pseudoArrPos+69][1] = rowY;    // strip 1 side B
-        ledPixelPos[pseudoArrPos+69+12][0] = colX;  ledPixelPos[pseudoArrPos+69+12][1] = rowY; // strip 2 side B
-        ledPixelPos[pseudoArrPos+69+24][0] = colX;  ledPixelPos[pseudoArrPos+69+24][1] = rowY; // strip 3 side B
-        ledPixelPos[pseudoArrPos+69+36][0] = colX;  ledPixelPos[pseudoArrPos+69+36][1] = rowY; // strip 4 side B
-    }
-   else if (pseudoArrPos == 137){setRealLeds(242,253,colX,rowY);} // ring1 side B
-}
-void setRealLeds( uint16_t fromPos ,uint16_t toPos, uint16_t colX, uint16_t rowY){ for(uint16_t i =  fromPos; i <= toPos; i++){ledPixelPos[i][0] = colX; ledPixelPos[i][1] = rowY;  } }
 
 void Led2Pixel_trails( float alpha1 ) { // angle in rad !!!
   //1x px col / degree = M_PI/180
@@ -397,39 +333,95 @@ uint16_t arrayPos(uint16_t colX, uint16_t rowY){return (colX*bmp.w+rowY);}
 CRGB getPixel(uint16_t colX, uint16_t rowY){ return CRGB(pixelBuff[arrayPos(colX,rowY)][0],pixelBuff[arrayPos(colX,rowY)][1],pixelBuff[arrayPos(colX,rowY)][2]);}
 
 
-void rollStaticTest(){
+/*
+  1) calculate X/Y bitmap pixel pos. for all vitual LED strip LEDs
+  2) invert LED order of the mini stip un the cpu side
+  3) caculate the roll16 correction but save correction as int correction=(32768-LedOff16)
+  4) apply correction to roll16 to get (int)distAngle = (int)roll16 + correction
+  5) wrap around (int)distAngle with wrap_u16() to get uint16_t and calculate the sin16(uint16_t distAngle) (sin16 input: 0 to 65335 output -32767 to 32767)
 
-float OFF_ROLL1 = 0.71559;  // rotational offset (rad) flower 1 roll axis
-float OFF_ROLL2 = 1.727876; // rotational offset (rad) flower 2 roll axis
-  for(int i = 0; i <12; i++){
-  //  cos(roll)*127 +127 // 205  194
-  //-sin(roll)*127 +127 // 241 230
-  //-cos(roll)*127 +127 // 229 218
-  //sin(roll)*127 +127 // 217 206
-//  leds[i+12] = CHSV((-sin16(65535.0/(M_PI*2) * (roll+OFF_ROLL1)) / 32767.0) * 127 +127,255,255);
-//  leds[i+24] = CHSV(( cos16(65535.0/(M_PI*2) * (roll+OFF_ROLL1)) / 32767.0) * 127 +127,255,255);
-//  leds[i+36] = CHSV(( sin16(65535.0/(M_PI*2) * (roll+OFF_ROLL1)) / 32767.0) * 127 +127,255,255);
-//  leds[i+48] = CHSV((-cos16(65535.0/(M_PI*2) * (roll+OFF_ROLL1)) / 32767.0) * 127 +127,255,255);
-//
-//  leds[i+206] = CHSV((-sin16(65535.0/(M_PI*2) * (roll+OFF_ROLL2)) / 32767.0) * 127 +127,255,255);
-//  leds[i+218] = CHSV(( cos16(65535.0/(M_PI*2) * (roll+OFF_ROLL2)) / 32767.0) * 127 +127,255,255);
-//  leds[i+230] = CHSV(( sin16(65535.0/(M_PI*2) * (roll+OFF_ROLL2)) / 32767.0) * 127 +127,255,255);
-//  leds[i+194] = CHSV((-cos16(65535.0/(M_PI*2) * (roll+OFF_ROLL2)) / 32767.0) * 127 +127,255,255);
+*/   
 
-  //mini led strips = +/- 3,5° offset from center
-  //              ring strip ring center ring strip ring
-  // virtual leds = 1 + 12  + 1  + 110  + 1  + 12  + 1 = 138 leds
-  // real LED length = 254
+void Led2Pixel_static() { // angle in rad 
 
-  leds[i+12] = CHSV( sin(roll+OFF_ROLL1)*127 +127,255,255);
-  leds[i+24] = CHSV( cos(roll+OFF_ROLL1)*127 +127,255,255);
-  leds[i+36] = CHSV(-sin(roll+OFF_ROLL1)*127 +127,255,255);
-  leds[i+48] = CHSV(-cos(roll+OFF_ROLL1)*127 +127,255,255);
+  float halfX = (float)bmp.w / 2.0;
+  float halfY = (float)bmp.h / 2.0;
+  float xPerLed = (float)bmp.w / (float)NUM_VLEDS;
+  float yPerLed = (float)bmp.h / (float)NUM_VLEDS;
+  int halfLED = NUM_VLEDS/2;
 
-  leds[i+194] = CHSV( cos(roll+OFF_ROLL2)*127 +127,255,255);
-  leds[i+206] = CHSV( sin(roll+OFF_ROLL2)*127 +127,255,255);
-  leds[i+218] = CHSV(-cos(roll+OFF_ROLL2)*127 +127,255,255);
-  leds[i+230] = CHSV(-sin(roll+OFF_ROLL2)*127 +127,255,255);
-  
+  ledVector[0] = ((float)sin16(yaw16)/32767.0) * xPerLed; // store the current led vecor
+  ledVector[1] = ((float)cos16(yaw16)/32767.0) * yPerLed; // store the current led vecor
+
+  for (int i = 0; i < halfLED ; i++) {
+    float x = ledVector[0] * i + (xPerLed / 2.0); // scale the led vector to current index  
+    float y = ledVector[1] * i + (yPerLed / 2.0); // scale the led vector to current index  
+    
+    virt2realLed(halfLED - i - 1, x + halfX,y + halfY); // side A
+    virt2realLed(halfLED + i, -x + halfX, -y + halfY);  // side B with inverted pixel vector
   }
 }
+void virt2realLed(uint16_t vIdx, float x, float y){
+  if(vIdx == 0 || vIdx == 13 || vIdx == 124 || vIdx == 137){set12RingPx(vIdx, x, y);} //set all 12 ring LED pixels
+  else if ( vIdx >= 1 && vIdx <= 12){setMiniStripsPx(vIdx, x, y, 0 );}   // cpu side mini srips ( reverse order)
+  else if ( vIdx >= 14 && vIdx <= 123){ ledPixelPos[vIdx+58][0] = x*100; ledPixelPos[vIdx+58][1] = y*100; } //multiply the XY result by 100 for blending function
+  else if ( vIdx >= 125 && vIdx <= 136 ){setMiniStripsPx(vIdx, x, y, 1);}  // battery side mini srips
+}
+/*
+ * 
+//create 1 pixel vector from center pixel (P1) to next pixel (P2) --> Vector = P2-P1
+//ad rotate vector by 90° cw --> Vector_X * -1, then swap Vector_X & Vector_Y
+// then scale the vector to max pixel offset distance 90° from stick (max dist 15mm => 5 pixel) (constant: maxRollPx)
+
+        // vector of one LED distance pointing from the center to cpu side
+        ledVector[0] 
+        ledVector[1]
+        // vecor of one LED distance but perpendicular (clockwise) to the stick
+        ledVecor90cw[0]  =  ledVector[1] // for roll angle distance of CPU side LEDs
+        ledVecor90cw[1]  = -ledVector[0] // for roll angle distance of CPU side LEDs
+        // vecor of one LED distance but perpendicular (counter clockwise) to the stick
+        ledVecor90ccw[0] = -ledVector[1] // for roll angle distance of battery side LEDs
+        ledVecor90ccw[1] =  ledVector[0] // for roll angle distance of battery side LEDs
+        // multiply by rollDistMaxPx and then scale down by specific sin() of the difference between the roll angle and each LEDs offset angle
+        angle16Ring[0 to 11] relative led offset
+        getOffScaling();
+        retrive scaling factor for ring leds:
+                          wrap to uint16_t , starting offset 1st led, -1 or 1  relative offset to 1st ring led
+        float a = getOffScaling( wrap_u16(ringOff16[1 to 4] + ring_Data_direction * angle16Ring[0 to 11])
+*/
+
+
+void set12RingPx(uint16_t vIdx, float vx, float vy){
+  
+  for(uint8_t i = 0; i < 12; i++){
+    float coef = 0;
+    uint16_t real1stIdx;
+       if(vIdx == 0  ){ coef = getOffScaling( wrap_u16(ringOff16[0] + angle16Ring[i])); real1stIdx = 0;}
+  else if(vIdx == 13 ){ coef = getOffScaling( wrap_u16(ringOff16[1] - angle16Ring[i])); real1stIdx = 60; }
+  else if(vIdx == 124){ coef = getOffScaling( wrap_u16(ringOff16[2] + angle16Ring[i])); real1stIdx = 182; }
+  else if(vIdx == 137){ coef = getOffScaling( wrap_u16(ringOff16[3] - angle16Ring[i])); real1stIdx = 242; }
+  //multiply the XY result by 100 for blending function
+  ledPixelPos[real1stIdx + i][0] = (vx + ( ledVector[1] * coef ))*100; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
+  ledPixelPos[real1stIdx + i][1] = (vy + (-ledVector[0] * coef ))*100; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
+  }
+}
+
+void setMiniStripsPx(uint16_t vIdx, float vx, float vy, uint8_t side){
+  
+  uint16_t rIdx; // real led index of the nightstick
+  for(int i = 0; i < 4; i++){
+      if(side == 0){ rIdx = stripLedPos[side][i] - vIdx;} // to invert the led order
+      else{ rIdx = stripLedPos[side][i] + vIdx;}
+      float coef = getOffScaling(stripOff16[side][i]);
+  ledPixelPos[rIdx][0] = (vx + ( ledVector[1] * coef ))*100; //multiply the XY result by 100 for blending function
+  ledPixelPos[rIdx][1] = (vy + (-ledVector[0] * coef ))*100; //multiply the XY result by 100 for blending function
+  }
+}
+
+//float sinRingDist(uint16_t ringOffFrist, int rotDir, uint8_t relIdx){ return ((float)sin16(wrap_u16(ringOffFrist + (rotDir * angle16Ring[relIdx]))))/32767.0;}
+uint16_t wrap_u16(int unwrapped_u16){return (uint16_t)(unwrapped_u16 % 65536);}
+
+//input: led offset as uint16_t 0 to 65535 --> 0° to 360°
+//output -6 to 6 which is the scaling factor for the 90° rotated led-pixel-distance vector
+float getOffScaling(int ledOff16){return  ((float)sin16( wrap_u16(roll16 +(32768 - ledOff16)) )/32767.0) * -rollDistMaxPx;} // 32768 is 180° where the sin is 0
+  

@@ -57,6 +57,10 @@ Btn btn;
 #define ERRSHORT 300  // for internal led blink timing
 #define RAD(A)  (A * 71) / 4068.0  // convert degree to radians
 #define DEG(A)  (A*4068) / 71.0    // convert radians to degree
+#define RADTO16(A) (A * 10430.378350)
+#define DEGTO16(A) (A * 182.044444) // A / 360 * 65535
+     
+
 #define FREQ2MS(A) 1000/A
 #define MS2FREQ(A) 1000/A
 #define MAIN_PATH "/Nightstick"  // Main Folder on SD where BMPs Folder is in
@@ -110,9 +114,9 @@ FASTLED_USING_NAMESPACE
 #define max_bright 50
 #define min_bright 10
 #define NUM_LEDS   254 // 110 Leds @ center stick
+#define NUM_VLEDS  138 //
 
 #define LED_OFF       0
-
 #define LED_STATIC    1
 #define LED_TRAIL     2
 #define LED_ANI       3
@@ -173,11 +177,16 @@ float rotAngle;
 float rotAngleLast;
 float rotAngle2;
 float roll, pitch, yaw;
+uint16_t roll16,pitch16,yaw16;
 float heading;
 float ax, ay, az;
 float gx, gy, gz;
 Quaternion qt;
 VectorFloat gravity;
+//for horizontal 2d projection of the mini led array distance to the the stick arounf the  roll angle
+//float rollOffStrip_12, rollOffStrip_24, rollOffStrip_36, rollOffStrip_48, rollOffStrip_194, rollOffStrip_206, rollOffStrip_218, rollOffStrip_230;
+
+
 
 //--------------------------------------------------------------------------------------------------------------------- SD
 //---==={DEFINITIONS - SD}===---//
@@ -203,7 +212,8 @@ uint8_t pixelBuff[MAXPIXEL][3]; // --> 120kB
 //int16_t buffHeight; // when bmp is loaded dimensions are kept here
 //int16_t buffWidth; //
 uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
-
+float ledVector[2] = {0.0,0.0};
+//uint16_t vLedPixelPos[NUM_VLEDS][2]; // x and y position 
 
 struct bmpInfo{
     File32 file;
@@ -292,3 +302,11 @@ uint8_t convByte;
 int convInt;
 float convFloat;
 bool convBool;
+// uint16_t angle offset in led ring relative to first LED withing ring
+int angle16Ring[12] = { 0,   3641,  7282,  16384, 20025, 23665, 32768, 36408, 40049, 49151, 52792, 56433};
+// offset scaled to uint_16 for first ring LEDs (leds to light up in calib: #0,#60,#182,#242):
+uint16_t ringOff16[4] = {38229,    36408,   40049,   18204};
+float rollDistMaxPx = 6.0;
+//                                cpu side                          battery side
+uint16_t stripOff16[2][4] = {{25486,  9102,  58253, 41870},{30947,  47331, 63715, 14563}};// offset scaled to uint_16 for mini strips cpu side (leds to light up in calib: #12 ->#23, #24 ->#35, #36 ->#47, #48 ->#59 )
+uint16_t stripLedPos[2][4] = {{24, 36, 48, 60, } , {69,  81,  93,  105 }};

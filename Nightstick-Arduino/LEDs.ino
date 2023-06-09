@@ -14,7 +14,7 @@ if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
     gHue++;
     //if(ledMode != ledModeLast && ledMode == LED_STATIC){chkBmpLoaded();};
     switch (ledMode) {
-      case LED_STATIC: Led2Pixel_static(rotAngle); drawRamPixel(true);  break;
+      case LED_STATIC: Led2Pixel_static(); drawRamPixel(true);  break;
       case LED_TRAIL: Led2Pixel_trails(rotAngle);   break; // only for testing Led2Pixel_static is for static bmps!
       case LED_ANI:  break;
       case LED_FIRE: make_fire();  break;

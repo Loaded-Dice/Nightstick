@@ -145,6 +145,7 @@ void bleMsgHandler(){
     else if(strcmp(comBufIn, "REF_3V0")    == 0){analogReference(AR_INTERNAL_3_0);}
     else if(strcmp(comBufIn, "DEPTH10")    == 0){analogReadResolution(10);}
     else if(strcmp(comBufIn, "DEPTH12")    == 0){analogReadResolution(12);}    
+
     //else if(strcmp(comBufIn, "TESTHALLO")    == 0){test=!test; sendBLE(test ? "Test on" : "Test off");}    
     else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-\n"); }
     comBufIn[0]='\0';
@@ -155,10 +156,15 @@ void bleMsgHandler(){
 void checkForSerial(){ // ------------------------- SERIAL read  115200 baud 
     if (Serial && !newSerialData && Serial.available() > 0) {
        int n_bytes = Serial.available();
+       char rx;
         for(int i = 0; i < n_bytes; i++){ 
-          if(i < SIZE(comBufIn)){comBufIn[i] = Serial.read();}  // overflow protection
-          else{Serial.read(); }
+          rx = Serial.read();
+          if(i < SIZE(comBufIn)-1 && !isControl(rx) ){comBufIn[i] = rx;}  // overflow protection
+          else{comBufIn[i] = '\0'; 
+            while(Serial.available() > 0){Serial.read(); }
+            break;
           }
+        }
         if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
         newSerialData=true;
     }
@@ -168,7 +174,7 @@ void checkForSerial(){ // ------------------------- SERIAL read  115200 baud
 void serialHandler(){
   if(Serial && newSerialData){
     cArrToUpper(comBufIn);
-    cArrTrim(comBufIn);
+    //cArrTrim(comBufIn);
 
          if(strcmp(comBufIn, "BLE-ON")          == 0 ){ msgln("BLE On recived"); startBLE();}
     else if(strcmp(comBufIn, "BLE-DISCONNECT")  == 0 ){ msgln("BLE off recived"); disconnectBLE();}
@@ -182,7 +188,8 @@ void serialHandler(){
       if(isInt(comBufIn)){msgln(comBufIn);Bluefruit.setConnLedInterval(convInt);}
       }
       else if(strncmp (comBufIn, "LED", 3)  == 0 ){setBoardLed(comBufIn[3], comBufIn[4]);} // LEDR1 for Red channel high
-    else if(isInt(comBufIn) && convInt < NUM_LEDS && convInt >= 0){ledsClear(); leds[convInt] = CRGB::Red; ledsShow(); comBufIn[0] = '\0';} 
+    else if(strcmp(comBufIn, "ROLL")       == 0){testAngle();}
+    else if(isInt(comBufIn) && convInt < NUM_LEDS && convInt >= 0){ledMode = LED_TEST; ledsClear(); leds[convInt] = CRGB::Red; ledsShow(); comBufIn[0] = '\0';} 
     else{msg("UNKNOWN CMD:  ");msg(comBufIn); msgln("  \n");}
 
     newSerialData=false;
