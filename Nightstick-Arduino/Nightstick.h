@@ -141,7 +141,7 @@ uint8_t gCurrentPatternNumber = 0;
 uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
 float ledVector[2] = {0.0,0.0};
 float colTrail = 0.0;   // store the current trails colum
-float trailSpeed = 0.5; // 182 (yaw16) units = 1° per bmp colum 
+float trailSpeed = 1.0; // 182 (yaw16) units = 1° per bmp colum 
 //shall get overwritten by calibration:
 //uint16_t ringOff16[4] & uint16_t stripOff16[2][4]
 // would be 12 calibration points
@@ -176,9 +176,13 @@ bool newSerialData =false;
 
 //--------------------------------------------------------------------------------------------------------------------- Filter_IMU
 //---==={DEFINITIONS - Filter_IMU}===---//
-#include <MahonyAHRS.h>
 #include <Arduino_LSM6DS3.h>
-Mahony filter;
+//#include <MahonyAHRS.h>
+//Mahony filter;
+#include<MadgwickAHRS.h>
+Madgwick filter;
+
+MahonyAHRS MadgwickAHRS
 
 //---==={VARIABLES - Filter_IMU}===---//
 float roll, pitch, yaw, yawLast;

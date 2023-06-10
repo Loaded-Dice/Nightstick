@@ -53,11 +53,12 @@
   - Arduino_LSM6DS3 (Inertial measurement unit library Arduino_LSM6DS3 v1.0.2)
         https://www.arduino.cc/reference/en/libraries/arduino_lsm6ds3/
 
-  - MahonyAHRS (Version 1.1)  implementation of MahonyAHRS algorithm to smooth and improve the gyro and accleration readings
-    https://github.com/PaulStoffregen/MahonyAHRS
+  - // [Replaced by Madgwick] MahonyAHRS (Version 1.1)  implementation of MahonyAHRS algorithm to smooth and improve the gyro and accleration readings
+    // [Replaced by Madgwick] https://github.com/PaulStoffregen/MahonyAHRS
+    
+  - Madgwick (version 1.2.0)
+    https://github.com/arduino-libraries/MadgwickAHRS
   
-  - I2Cdevlib-MPU6050 (Version 1.0.0) We only need the helper_3dmath.h file for easy vector handling
-      https://github.com/jrowberg/i2cdevlib
       
 ## Credits
 
