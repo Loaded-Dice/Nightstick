@@ -27,20 +27,38 @@ void printDirectory(File32 path, int numTabs) {
      entry.close();
    }
 }
+void removeBmp(char * pathToBmp){
+  if(sd.exists(pathToBmp)){
+    if(sd.remove(pathToBmp)){Serial.print("removed : ");Serial.print('\t');Serial.print(pathToBmp);}
+    else{Serial.print("Error - can't remove : ");Serial.print('\t');Serial.print(pathToBmp);}
+    }
+  else{Serial.print("file does not exist : ");Serial.print('\t');Serial.print(pathToBmp);}
+}
 
+void printBmpHeader(){
+    Serial.print("fileSize"); Serial.print('\t');Serial.println(bmp.fileSize);
+    Serial.print("headerSize"); Serial.print('\t');Serial.println(bmp.headerSize);
+    Serial.print("width"); Serial.print('\t');Serial.println(bmp.width); // BMP image width in pixel
+    Serial.print("height"); Serial.print('\t');Serial.println(bmp.height); // BMP image height in pixel
+    Serial.print("depth"); Serial.print('\t');Serial.println(bmp.depth); // Bit depth (currently must report 24)
+    Serial.print("imageOffset"); Serial.print('\t');Serial.println(bmp.imageOffset); // Start of image data in file
+    Serial.print("rowSize"); Serial.print('\t');Serial.println(bmp.rowSize); // Not always = bmpWidth; may have padding
+    Serial.print("goodBmp"); Serial.print('\t');Serial.println(bmp.goodBmp) ;
+    Serial.print("flip"); Serial.print('\t');Serial.println(bmp.flip);
+}
 
 void ledsChangeBmp(int8_t loadDirection){ // LAST -1 , NEXT 1
   
   if(ledMode == LED_TRAIL ){
     strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS, cfg.trailsFolder, true) ,cfg.trailsBmp, loadDirection)); 
+    Serial.println(charBuff);
     BMPtoRAM(toCharBuff(pathBuff,cfg.trailsBmp,true));
     }
   else if(ledMode == LED_STATIC){
     strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC, cfg.staticFolder, true) ,cfg.staticBmp, loadDirection)); 
+    Serial.println(charBuff);
     BMPtoRAM(toCharBuff(pathBuff,cfg.staticBmp,true));
     }
-
-Serial.println(charBuff);
   // combine parent folder (still at pathBuff) with new bmp 
   
   writeCfg();
@@ -267,6 +285,7 @@ void readBmpHeader(char* bmpFilePath) { //store full bmp path in generic charBuf
         bmp.w = bmp.width;
         bmp.h = bmp.height;
       }
+      else{msgln("BAD BITMAP"); Serial.println(bmpFilePath);}
     }
   }
   bmp.file.close();

@@ -177,7 +177,8 @@ To do:
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
-  //if(DEBUG){while (!Serial.available()) { yield();}}
+//  if(DEBUG){while (!Serial.available()) { yield();}}
+//  Serial.print("TEST");
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
   setup_Config(); // find and load config.csv from SD card or write new if not found
@@ -189,16 +190,10 @@ void setup(){
   memset(pixelBuff,0,sizeof(pixelBuff));  // Filling  the buffer to see at compile time what space is used and whats left - can be removed later
   //startBLE(); // debugging voltage readings & Vref
   
-  Serial.print("LED");
-  Serial.print("\t");
-  Serial.print("roll");
-  Serial.print("\t");
-  Serial.print("sin()");
-  Serial.print("\t");
-  Serial.print("roll16");
-  Serial.print("\t");
-  Serial.print("sin16()");
-  Serial.println();
+   //removeBmp("/Nightstick/BMPs/trails/elements/electric_tangle_wave.bmp");
+   BMPtoRAM("/Nightstick/BMPs/trails/elements/purple_root.bmp");
+   strcpy(cfg.trailsBmp,"purple_root.bmp");
+   strcpy(cfg.trailsFolder,"elements");
 }
 
 void loop(){ // all main functions have timining structures integrated
@@ -209,17 +204,28 @@ void loop(){ // all main functions have timining structures integrated
   main_Inputs();
   testAngle();
 }
-float temp1, temp2;
+float temp_f = 0.0; // abs((int)blendCol); 
+int temp_i1 = 0; // col;
+int temp_i2 = 0; // overCol;
+int temp_i3 = 0; // blendDirCol;
+
 void testAngle(){
   EVERY_N_MILLIS(150) {
-    Serial.print(temp1);
+    Serial.print("nblend( ");
+    Serial.print(temp_i1);
+    Serial.print(" , ");
+    Serial.print(temp_i2);
+    Serial.print(" , ");
+    Serial.print(temp_f);// overcol
+    Serial.print(" ) \t Dir= ");
+    Serial.print(temp_i3); // Col
+//    Serial.print("\t");
+//    Serial.print(convFloat); // blend
     Serial.print("\t");
-    Serial.print(temp2);
+    Serial.print(bmp.w );
     Serial.print("\t");
-  Serial.print(bmp.w );
-  Serial.print("\t");
-  Serial.println(bmp.h );
- }
+    Serial.println();
+   }
   
  // EVERY_N_MILLIS(150) {
 //    int8_t i = NUM_LEDS / 2;

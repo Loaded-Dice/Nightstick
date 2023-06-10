@@ -126,8 +126,9 @@ FASTLED_USING_NAMESPACE
 
 #define LED_BLE       7
 #define LED_TEST      8   // For testing new stuff
-uint8_t ledMode = LED_STATIC;// LED_TEST; //
-uint8_t ledModeLast = LED_STATIC;// LED_TEST;
+uint8_t ledMode = LED_TRAIL;// LED_TEST; //
+uint8_t ledModeLast = LED_TRAIL;// LED_TEST;
+
 CRGB leds[NUM_LEDS];
 CRGBPalette16 currentPalette = OceanColors_p;//PartyColors_p
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);//254
@@ -139,7 +140,8 @@ uint8_t gCurrentPatternNumber = 0;
 
 uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
 float ledVector[2] = {0.0,0.0};
-
+float colTrail = 0.0;   // store the current trails colum
+float trailSpeed = 0.5; // 182 (yaw16) units = 1° per bmp colum 
 //shall get overwritten by calibration:
 //uint16_t ringOff16[4] & uint16_t stripOff16[2][4]
 // would be 12 calibration points
@@ -179,10 +181,8 @@ bool newSerialData =false;
 Mahony filter;
 
 //---==={VARIABLES - Filter_IMU}===---//
-
-float roll, pitch, yaw;
-uint16_t roll16,pitch16,yaw16;
-                // NOT NEEDED ANYMORE
+float roll, pitch, yaw, yawLast;
+uint16_t roll16,pitch16,yaw16,yaw16Last;
 float ax, ay, az;
 float gx, gy, gz;
 
@@ -267,7 +267,6 @@ struct cfgFile{ // initialize with std values  and overwrite atrr from SD id fou
   uint8_t ledMode = LED_OFF;
 };
 cfgFile cfg;   
-
 
 struct cfgInfos{  char cfgVarName[MAXFILECHARS]; uint8_t varType;};
 cfgInfos cfgEntry; // holds the property name & file type of entry calles by getCfgInfo(index)  - max is stored here uint8_t cfgInfoCount

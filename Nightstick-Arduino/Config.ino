@@ -122,17 +122,17 @@ void writeCfg(){
       file.print(";");
 
       // writing the property values
-           if( entryIdx == CFG_START ){msgln("Header Start written");} // no value to write just property name "Nightstick Config Start" is written
-      else if( entryIdx == CFG_BLENAME ){ file.print(cfg.bleName);msgln("BLE Name written");}
-      else if( entryIdx == CFG_BRIGHT ){ file.print(i2char(cfg.bright));msgln("Brightness written");}
-      else if( entryIdx == CFG_STATICBMP ){ file.print(cfg.staticBmp);msgln("bmp filename written");}
-      else if( entryIdx == CFG_STATICFLD ){ file.print(cfg.staticFolder);msgln("bmp folder written");}
-      else if( entryIdx == CFG_TRAILSBMP ){ file.print(cfg.trailsBmp);msgln("bmp filename written");}
-      else if( entryIdx == CFG_TRAILSFLD ){ file.print(cfg.trailsFolder);msgln("bmp folder written");}
-      else if( entryIdx == CFG_ANI ){ file.print(i2char(cfg.ledAni));msgln("led ani no. written");}
-      else if( entryIdx == CFG_PALETTE ){ file.print(i2char(cfg.palette));msgln("palette no. written");}
-      else if( entryIdx == CFG_LEDMODE ){ file.print(i2char(cfg.ledMode));msgln("led mode no. written");}
-      else if( entryIdx == CFG_ENDE ){msgln("Header End written");} // no value to write just property name "Nightstick Config Start" is written
+           if( entryIdx == CFG_START ){} // no value to write just property name "Nightstick Config Start" is written
+      else if( entryIdx == CFG_BLENAME ){ file.print(cfg.bleName);}
+      else if( entryIdx == CFG_BRIGHT ){ file.print(i2char(cfg.bright));}
+      else if( entryIdx == CFG_STATICBMP ){ file.print(cfg.staticBmp);}
+      else if( entryIdx == CFG_STATICFLD ){ file.print(cfg.staticFolder);}
+      else if( entryIdx == CFG_TRAILSBMP ){ file.print(cfg.trailsBmp);}
+      else if( entryIdx == CFG_TRAILSFLD ){ file.print(cfg.trailsFolder);}
+      else if( entryIdx == CFG_ANI ){ file.print(i2char(cfg.ledAni));}
+      else if( entryIdx == CFG_PALETTE ){ file.print(i2char(cfg.palette));}
+      else if( entryIdx == CFG_LEDMODE ){ file.print(i2char(cfg.ledMode));}
+      else if( entryIdx == CFG_ENDE ){} // no value to write just property name "Nightstick Config Start" is written
   file.print(F("\r\n"));
   }
   file.close();

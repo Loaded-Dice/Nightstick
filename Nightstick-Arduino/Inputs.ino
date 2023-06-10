@@ -90,7 +90,7 @@ void btnHandler(char firstBtn, char secondBtn){
   btnResultHandler(btnResult);
 }
 void btnResultHandler(uint8_t btnCode){
-  if(ledMode == LED_STATIC){ // LED_TRAIL
+  if(ledMode == LED_STATIC || ledMode == LED_TRAIL){ // 
 
     switch (btnCode) {
       case A_SHORT: ledsChangeBmp(1);  break;
@@ -102,9 +102,9 @@ void btnResultHandler(uint8_t btnCode){
       case BTN_CB:    break;
       default:  break; 
     }
+    if(ledMode == LED_TRAIL){colTrail = 0.0;}
   }
-//ledMode
-  
+
 }
 /*
 A_SHORT

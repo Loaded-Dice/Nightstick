@@ -9,7 +9,7 @@ void main_FILTER_IMU(){
       if (IMU.gyroscopeAvailable()) { IMU.readGyroscope(gx, gy, gz);}
       if (IMU.accelerationAvailable()) {IMU.readAcceleration(ax, ay, az);}
       filter.updateIMU(gx, gy, gz, ax, ay, az);
-      //yawLast = rotAngle;
+      //yawLast = yaw; 
       yaw = filter.getYaw(); // rotation along Z --> main rotation aka "yaw" (in degree)
       yaw16 = (uint16_t)((yaw+180)/360.0*65535);
       yaw = RAD(yaw)+M_PI;
