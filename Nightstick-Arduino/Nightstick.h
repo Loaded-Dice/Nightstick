@@ -1,4 +1,10 @@
 //--------------------------------------------------------------------------------------------------------------------- Common
+
+//System Status indicator variables
+//uint8_t bleMode = BLE_OFF; // BLE_OFF , BLE_ADV , BLE_CONN
+//uint8_t ledMode = LED_OFF;// LED_TEST; //LED_TRAIL...
+//uint8_t imuMode = OFF; // ON OFF
+//uint8_t fftMode = OFF; // ON OFF
 //---==={DEFINITIONS - COMMON / PINS}===---//
 #define LED_PIN     D1
 #define SDCS_PIN    D2
@@ -46,7 +52,7 @@ struct Btn{
 Btn btn;
 
 //---==={DEFINITIONS - COMMON / System}===---//
-#include <avr/dtostrf.h>
+//#include <avr/dtostrf.h>
 #define DEBUG 1
 #define SIZE(ARRAY)    (sizeof(ARRAY) / sizeof(ARRAY[0]))
 #define ON  true
@@ -59,7 +65,8 @@ Btn btn;
 #define DEG(A)  (A*4068) / 71.0    // convert radians to degree
 #define RADTO16(A) (A * 10430.378350)
 #define DEGTO16(A) (A * 182.044444) // A / 360 * 65535
-     
+#define OFF false
+#define On true     
 
 #define FREQ2MS(A) 1000/A
 #define MS2FREQ(A) 1000/A
@@ -115,7 +122,10 @@ FASTLED_USING_NAMESPACE
 #define min_bright 10
 #define NUM_LEDS   254 // real number of LEDs
 #define NUM_VLEDS  138 // virtual number of LEDs. used for a correct roll and yaw 2D projection
+#define SECONDS_PER_PALETTE 10
+#define SECONDS_PER_ANIMATION 25
 
+// Dfinitions for ledMode ( determine only the current playing led animation)
 #define LED_OFF       0
 #define LED_STATIC    1
 #define LED_TRAIL     2
@@ -123,14 +133,19 @@ FASTLED_USING_NAMESPACE
 #define LED_FIRE      4
 #define LED_BRIGHT    5
 #define LED_BATT      6
-
 #define LED_BLE       7
 #define LED_TEST      8   // For testing new stuff
-uint8_t ledMode = LED_TRAIL;// LED_TEST; //
-uint8_t ledModeLast = LED_TRAIL;// LED_TEST;
+uint8_t ledMode = LED_ANI;// LED_TEST; //LED_TRAIL
+uint8_t ledModeLast = LED_ANI;// LED_TEST;
+
+struct pos_f{  float x; float y;};
 
 CRGB leds[NUM_LEDS];
-CRGBPalette16 currentPalette = OceanColors_p;//PartyColors_p
+//CRGBPalette16 currentPalette = OceanColors_p;//PartyColors_p
+CRGBPalette16 currentPalette = {
+  0xFF0000, 0x7F0000, 0xAB5500, 0x552A00, 0xABAB00, 0x555500, 0x00FF00, 0x007F00,
+  0x00AB55, 0x00552A, 0x0000FF, 0x00007F, 0x5500AB, 0x2A0055, 0xAB0055, 0x55002A
+};
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);//254
 
 //---==={VARIABLES - LEDs }===---//
@@ -141,7 +156,14 @@ uint8_t gCurrentPatternNumber = 0;
 uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
 float ledVector[2] = {0.0,0.0};
 float colTrail = 0.0;   // store the current trails colum
-float trailSpeed = 1.0; // 182 (yaw16) units = 1° per bmp colum 
+float trailSpeed = 0.5; // 182 (yaw16) units = 1° per bmp colum 
+float blendMulti = 100.0;
+ 
+bool paletteActive = true; // if active getColor(h,s,v) returns color from palette as CRGB, otherwise return CHSV(h,s,v)
+bool paletteNextAuto = false; // automatic load  iCurrentPal+1 to targetPal after SECONDS_PER_PALETTE
+bool paletteFadeAuto = false; // when off 2 palettes can be loaded at the same time without fade
+
+bool aniNextAuto = true;
 //shall get overwritten by calibration:
 //uint16_t ringOff16[4] & uint16_t stripOff16[2][4]
 // would be 12 calibration points
@@ -182,8 +204,9 @@ bool newSerialData =false;
 #include<MadgwickAHRS.h>
 Madgwick filter;
 
-MahonyAHRS MadgwickAHRS
+//MahonyAHRS MadgwickAHRS filter;
 
+uint8_t imuMode = OFF; // ON OFF
 //---==={VARIABLES - Filter_IMU}===---//
 float roll, pitch, yaw, yawLast;
 uint16_t roll16,pitch16,yaw16,yaw16Last;
@@ -296,3 +319,49 @@ uint8_t convByte;
 int convInt;
 float convFloat;
 bool convBool;
+
+//--------------------------------------------------------------------------------------------------------------------- LEDs
+//---==={DEFINITIONS - FFT}===---//
+#include <PDM.h>
+#include <arduinoFFT.h>
+//#include <FastLED_timers.h>
+arduinoFFT FFT = arduinoFFT();
+
+#define SAMPLES 256  // Must be a power of 2
+#define SAMPLING_FREQUENCY 16000
+
+//---==={VARIABLES - FFT}===---//
+
+
+//Audio variables (ForFFT & PDM)
+volatile static bool samples_ready = false;
+uint8_t fftStep = 0; // split FFT into 3 steps to render led frames inbetween
+uint8_t audioGain = 30; // gain value of the PDM microphone (default 20)
+bool fftMode = false; //  start_Audio() --> true; stop_Audio() -->false
+unsigned long eqStart; // FFT will start with a blast. to avoid this give it one second to sample enough data. this var will measure the time
+
+short sampleBuffer[SAMPLES];// buffer to read samples into (from PDM), each sample is 16-bits
+double vReal[SAMPLES]; //input/output data buffer for fft
+double vImag[SAMPLES]; // data buffer for fft
+volatile int samplesRead; // number of samples read
+
+struct eqBand {
+  uint16_t amplitude;
+  int peak;
+  int lastpeak;
+  uint16_t lastval;
+  unsigned long lastmeasured;
+};
+
+eqBand EQ[8] = {// ampl fract,peak,lastpeak,lastval,lastmeasured 
+  {   110, 0, 0, 0, 0},  //0    -> 128 Hz     i <=2
+  {   200, 0, 0, 0, 0},  //129  -> 256 Hz     i >=3 && i<=4
+  {   200, 0, 0, 0, 0},  //266  -> 512 Hz     i >=5 && i<=8
+  {   200, 0, 0, 0, 0},  //513  -> 1024 Hz    i >=9 && i<=16
+  {   200, 0, 0, 0, 0},  //1025 -> 2048 Hz    i >=17 && i<= 32
+  {   200, 0, 0, 0, 0},  //2048 -> 4096 Hz    i >=33 && i<= 64
+  {   170, 0, 0, 0, 0},  //4096 -> 7040 Hz    i >=65  && i<=110
+  {   50,  0, 0, 0, 0}   //7040 -> 8192 Hz    i >=111 (&&<=128)
+};
+
+//-----------------------------------------------------------------------------

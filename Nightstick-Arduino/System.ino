@@ -145,7 +145,12 @@ void cArrTrimRight(char* str, uint16_t len){ str[strlen(str)-len] = '\0';}
 const char * f2char(float fval){ charBuff[0] = '\0'; dtostrf(fval, 4, 2,charBuff); return charBuff;}
 const char * i2char(int ival){charBuff[0] = '\0'; itoa(ival,charBuff,10);  return charBuff;}
 const char * ul2char(unsigned long ulvar){charBuff[0] = '\0'; ultoa(ulvar,charBuff, 10);  return charBuff;}//(ulong,charBuffer,radix)(radix 2 = BIN | 10 = DEC | 16 = HEX)
-
+char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
+  char fmt[20];
+  sprintf(fmt, "%%%d.%df", width, prec);
+  sprintf(sout, fmt, val);
+  return sout;
+}
 char * ms2Time(unsigned long ms){ //any ms long in --> return char array Xd XXh XXm  (max width = 11)
   ms /= 1000;
   charBuff[0] = '\0';

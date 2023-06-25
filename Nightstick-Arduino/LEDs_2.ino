@@ -2,15 +2,219 @@
 other LED animations 
 no setup_X() or main_X()
 */
+void ani_main(){
+  ani[currentAni]();
+  if(aniNextAuto){
+    EVERY_N_SECONDS(SECONDS_PER_ANIMATION){
+      if(DEBUG){Serial.print("now:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(AniNames[currentAni]);}
+      nextAni();
+      if(DEBUG){Serial.print("next:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(AniNames[currentAni]);}
+    }
+  }
+}
+
+//create virtual area to spread the roll angle offset
+const uint8_t vWidth = 13; // virtual led strip length
+const uint8_t vHeight = 138; // area for roll offset exoansion  x=6   +/- 6px
+
+void plasma(){
+    float plasmaSpeed = 0.25; //0.1 to 1
+    uint8_t plasmaZoom = 30; // 20 to 80
+    ledVector[1] = 1;
+    ledVector[0] = 0;
+    for( int i = 0; i < (NUM_VLEDS); i++ ){ virt2realLed(i, (vHeight-1)/2, i ); }
+    
+
+    uint16_t ms = plasmaSpeed * millis(); 
+    for( int i = 0; i < (NUM_LEDS); i++ ){
+      int x = ledPixelPos[i][0];
+      int y = ledPixelPos[i][1];
+      byte noises =  inoise8 (y * plasmaZoom, x * plasmaZoom, ms);
+      leds[i] = getCurrentPalColor(noises, 255, 255);
+    }
+}
+
+
+pos_f wavePosB = {6.0,68.5};
+pos_f wavePosA = {6.0,68.5};
+pos_f waveStep = {0.0,0.0};
+
+pos_f getRandomPoint(){  return  {random8( 0, vWidth), random8( 0, vHeight)};}
+
+pos_f getStep(pos_f posCurrent, pos_f posTarget){
+  pos_f deltaPos = {(posTarget.x - posCurrent.x) , (posTarget.y - posCurrent.y) };
+  float dist = sqrt(sq(deltaPos.x*6.0)+sq(deltaPos.y*6.0))/ 6.0 ; // normalized distance  / 138.0
+  return { deltaPos.x / dist ,  deltaPos.y / dist };
+}
+
+void waveRings(){
+  ledVector[1] = 1;
+  ledVector[0] = 0;
+    for( int i = 0; i < (NUM_VLEDS); i++ ){ virt2realLed( i, (vHeight-1)/2 ,i ); }
+    //virt2realLed(uint16_t vIdx, float vx, float vy){
+  //bool waveBlend = false; // move from wavePosA to B or blend
+    static uint16_t hueOffA  = 0; // counter for radial color wave motion
+    static float zoom = 6; //0.7; // 0.5 is close and 10 is zoomed out
+    static uint8_t hueShift = 3;
+    byte brightA = 255;
+    //------------------------------------
+    static float ringDistA = 0.0;
+    static float ringWidthA = 15.0;
+    //------------------------------------
+    
+  for( int i = 0; i < (NUM_LEDS); i++ ){
+    int x = ledPixelPos[i][0];
+    int y = ledPixelPos[i][1];
+    
+    float waveCenterDistA = sqrt(sq(((float)x - wavePosA.x)*zoom) + sq(((float)y - wavePosA.y )* zoom)) ;
+
+//    if(waveCenterDistA <= ringDistA  && waveCenterDistA >= (ringDistA - ringWidthA) ){
+//       brightA = 255-cos8((waveCenterDistA - (ringDistA - ringWidthA))) ; 
+//    }
+//    else{brightA = 0;}
+    
+    leds[i] = getCurrentPalColor(sin8(waveCenterDistA + hueOffA), 255, brightA);
+    //getTargetPalColor(color, 255, 255);
+  }
+  EVERY_N_MILLIS(40){
+    hueOffA -= hueShift;
+    ringDistA += hueShift;
+    if((int)wavePosA.x == (int)wavePosB.x || (int)wavePosA.y == (int)wavePosB.y ){ // || wavePosA.x < 0 ||  wavePosA.x > vWidth || wavePosA.y < 0 || wavePosA.y > vHeight ) { 
+      wavePosB = getRandomPoint();
+      waveStep = getStep(wavePosA,wavePosB);
+    }
+    else{
+      wavePosA.x += waveStep.x;
+      wavePosA.y += waveStep.y;
+      }
+    }
+}
+
+/*
+
+void colorWaves() {
+  
+  static uint16_t sPseudotime = 0;
+  static uint16_t sLastMillis = 0;
+  static uint16_t sHue16 = 0;
+ 
+  uint8_t sat8 = beatsin88( 87, 220, 250);
+  uint8_t brightdepth = beatsin88( 341, 96, 224);
+  uint16_t brightnessthetainc16 = beatsin88( 203, (25 * 256), (40 * 256));
+  uint8_t msmultiplier = beatsin88(147, 23, 60);
+
+  uint16_t hue16 = sHue16;//gHue * 256;
+  uint16_t hueinc16 = beatsin88(113, 300, 1500);
+  
+  uint16_t ms = millis();
+  uint16_t deltams = ms - sLastMillis ;
+  sLastMillis  = ms;
+  sPseudotime += deltams * msmultiplier;
+  sHue16 += deltams * beatsin88( 400, 5,9);
+  uint16_t brightnesstheta16 = sPseudotime;
+  
+  for( uint16_t i = 0 ; i < NUM_VLEDS; i++) {
+    hue16 += hueinc16;
+    uint8_t hue8 = hue16 / 256;
+    uint16_t h16_128 = hue16 >> 7;
+    if( h16_128 & 0x100) {
+      hue8 = 255 - (h16_128 >> 1);
+    } else {
+      hue8 = h16_128 >> 1;
+    }
+
+    brightnesstheta16  += brightnessthetainc16;
+    uint16_t b16 = sin16( brightnesstheta16  ) + 32768;
+
+    uint16_t bri16 = (uint32_t)((uint32_t)b16 * (uint32_t)b16) / 65536;
+    uint8_t bri8 = (uint32_t)(((uint32_t)bri16) * brightdepth) / 65536;
+    bri8 += (255 - brightdepth);
+    
+    uint8_t index = hue8;
+    //index = triwave8( index);
+    index = scale8( index, 240);
+
+    CRGB newcolor = ColorFromPalette( currentPal, index, bri8);
+
+    uint16_t pixelnumber = i;
+    pixelnumber = (NUM_VLEDS-1) - pixelnumber;
+    int16_t realIdx = getRealFirstIdx(pixelnumber);
+    if(realIdx >= 0){nblend( leds[realIdx], newcolor, 128);}
+  }
+  spreadRealFirstIdx();
+  mirrorStick(0);
+}
+*/
 void rainbow() { fill_rainbow(leds, NUM_LEDS, gHue, 7); }// FastLED's built-in rainbow generator.
+
+void vAreaSetLedXY(){
+  ledVector[1] = 1;
+  ledVector[0] = 0;
+  // Set the virtual LED XY pos  in a staight line x=6  y = i
+  // the function will automatically adjust to the roll angle
+  // For these functions X & Y p
+  //                                                 vIdx,xPos,yPos
+  for( int i = 0; i < (NUM_VLEDS); i++ ){ virt2realLed(i, (vHeight-1)/2, i ); }
+
+//  for (byte y = 0; y < vHeight; y++) {
+//    for (byte x = 0; x < vWidth; x++) {
+//      int idx = getLedIdxByPos(x,y); // try to find the right LED
+//      if(idx != -1){leds[idx] = CRGB::Black;}
+//    }
+
+}
+
+int getLedIdxByPos(uint16_t x,uint16_t y){
+  for( uint16_t i = 0; i < NUM_LEDS; i++ ){  
+    if(ledPixelPos[i][0] == x &&  ledPixelPos[i][1] == y){ 
+      return i;
+    } 
+  }  
+  return -1;
+}
+
+void juggle() {
+  // eight colored dots, weaving in and out of sync with each other
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  byte dothue = 0;
+  for( int i = 0; i < 8; i++) {
+    //CHSV newColor = ColorFromPalette(currentPal,dothue, 200, 255);
+    leds[beatsin16(i+7,0,NUM_LEDS)] |= getCurrentPalColor(dothue, 255,  255);
+    //leds[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
+
+}
+void bpm(){
+  // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+  uint8_t BeatsPerMinute = 140;
+  //CRGBPalette16 palette = PartyColors_p;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for( int i = 0; i < NUM_LEDS; i++) { //9948
+    leds[i] =getCurrentPalColor(gHue+(i*2), 255,  beat-gHue+(i*10)); // ColorFromPalette(currentPal, gHue+(i*2), beat-gHue+(i*10));
+    
+  }
+}
+
+void fadeall() { for(int i = 0; i < NUM_LEDS; i++) { leds[i].nscale8(250); } }
+
+void cylon(){ // --------------------------------------------------------------------------
+  static int counter = 0;
+  static byte hue = 0;
+  
+  EVERY_N_MILLISECONDS( 10 ) {
+    counter++;
+    if(counter < NUM_LEDS){leds[counter] = getCurrentPalColor(hue++, 255,  255);  ledsShow();  fadeall();}
+    if(counter >= NUM_LEDS && counter < (2*NUM_LEDS)){leds[NUM_LEDS-(counter-NUM_LEDS)] = getCurrentPalColor(hue++, 255,  255); ledsShow();  fadeall();}
+     if(counter >= (2*NUM_LEDS-2)){counter=0;}
+    }
+}
 
 //---------------------------------------------------------Fire Animation (Similar to balcony lamps)
 
 uint8_t angleShift = 0; // 0 to 11
-
 const uint16_t rows = 16 ; // scrap the top rows to avoid mostly dark leds
 const uint16_t cols = 13 ; // one extra row to mash togeter with row 0
-
 
 /* Flare constants */
 const uint8_t flarerows = 6;    /* number of rows (from bottom) allowed to flare */
@@ -151,3 +355,85 @@ void newflare() {
     glow( x, y, z );
   }
 }
+
+
+
+/*
+//------------------------------------------------------------
+// RGB Orbit---------------------------------------------------------------------------------------------------
+bool printColor =false;
+void RGBorbit() {
+  
+  ledVector[1] = 1;
+  ledVector[0] = 0;
+  for( int i = 0; i < (NUM_VLEDS); i++ ){ virt2realLed(i, (vHeight-1)/2, i ); }
+  
+  static byte hueOffset  = 0; // counter for radial color wave motion
+  static int plasVector = 0; // counter for orbiting plasma center
+  static int distFactorCount = 0; // counter for orbiting plasma center
+  float zoom = 8; //0.7; // 0.5 is close and 1 is zoomed out
+  float xOffMatrix  = -6;// moves the whole animation
+  float yOffMatrix  = -68.5
+  ;//moves the whole animation 
+
+   // Calculate current center of plasma pattern (can be offscreen)
+  float distFactor = 0; //(float)sin8((float)distFactorCount / 128)/255;  // center distance factor should be between 0(center) and 1 (outside)
+  float xOffset = (cos8(plasVector / 128)-127)*distFactor + xOffMatrix; //orbiting plasma center x val
+  float yOffset = (sin8(plasVector / 128)-127)*distFactor + yOffMatrix; // orbiting plasma center y val
+
+
+  for( int i = 0; i < (NUM_LEDS); i++ ){
+    int x = ledPixelPos[i][0];
+    int y = ledPixelPos[i][1];
+        // determine the color by the distance (simple theorem of Pythagoras)
+        byte color = sin8(sqrt(sq(((float)x + xOffset)*zoom) + sq(((float)y + yOffset)* zoom)) +hueOffset) ;
+        //leds[i] = CHSV(color, 255, 255); //= ColorFromPalette( gCurrentPatternNumber, color, 255 ,LINEARBLEND);  //RGB without palettes  = CHSV(color, 255, 255);
+        leds[i] = getCurrentPalColor(color, 255, 255);
+  }
+    hueOffset-= 1; // hue offset wraps at 255 for sin8 , + for direction , change int for hue scroll speed
+    //plasVector += 64; // using an int for slower orbit (wraps at 65536)
+    float relCenterSpeed =1 ;// 128 - (distFactor * 128);
+    //plasVector += (relCenterSpeed); //
+    //distFactorCount += 5;
+}
+
+
+
+void rotationRainbow()  // ---- palettemix
+{   
+  float zoom = 3; // 5 to 10
+    ledVector[1] = 1;
+    ledVector[0] = 0;
+    for( int i = 0; i < (NUM_VLEDS); i++ ){ virt2realLed(i, (vHeight-1)/2, i ); }
+    
+    uint32_t ms = millis();
+    //int32_t yHueDelta32 = ((int32_t)cos16( ms * (27/1) ) * (350 / vWidth));
+    //int32_t xHueDelta32 = ((int32_t)sin16( ms * (39/1) ) * (310 / vHeight));
+    int32_t yHueDelta32 = ((int32_t)cos16( (ms * (17.0/1.0)) + vWidth/2) * (zoom*35 / vWidth));
+    int32_t xHueDelta32 = ((int32_t)sin16( (ms * (29.0/1.0)) + vHeight/2) * (zoom*31 / vHeight));
+    DrawOneFrame( ms / 65536, yHueDelta32 / 32768 + 3*zoom , xHueDelta32 / 32768 );
+}
+
+void DrawOneFrame( byte startHue8, int8_t yHueDelta8, int8_t xHueDelta8)
+{
+    for( int i = 0; i < (NUM_LEDS); i++ ){
+    int x = ledPixelPos[i][0];
+    int y = ledPixelPos[i][1];
+ // byte lineStartHue = startHue8;
+ // for( byte y = 0; y < vHeight; y++) {
+    //lineStartHue += yHueDelta8;
+ //   lineStartHue = 
+   // byte pixelHue = (yHueDelta8 * (1+y));     
+  //  for( byte x = 0; x < vWidth; x++) {
+      
+       //leds[out][0][ XYsafe(x, y)]  = CHSV( pixelHue, 255, 255);       
+       //leds[out][0][ XYsafe(x, y)]  = ColorFromPalette( gCurrentPalette, pixelHue, 255 ,LINEARBLEND);  
+       byte pixelHue = (startHue8 + (yHueDelta8 * (y+1))) + (xHueDelta8 * (x+1));
+       leds[i] = getCurrentPalColor(pixelHue, 255, 255);
+    }
+ //   }
+ // }
+ // copyLEDs();  
+}
+
+*/

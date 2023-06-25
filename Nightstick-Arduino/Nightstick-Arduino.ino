@@ -58,7 +58,13 @@
     
   - Madgwick (version 1.2.0)
     https://github.com/arduino-libraries/MadgwickAHRS
-  
+    
+  - arduinoFFT (Version 1.6)
+    https://github.com/kosme/arduinoFFT
+
+  - PDM (Pulse Density Modulation)
+    Part of the core library Seeed Studio nRF52 Boards v1.1.1 (Not the mbed -enabled core!)
+    https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json
       
 ## Credits
 
@@ -98,6 +104,13 @@ To do:
       one by one  and for each lit up LED the sick need to ged rotatet so that the LED is pointing up( right above the center line)
       one button press sould store the roll angle value and ne next led should light up. Calibration values sould get stored in the config file
       and loaded when the stick boots
+    - More palettes, preview / palette knife?
+    - palette fade activates accidenatlly after one loop ... function array problem?
+    - Animation idea - charge juggle animation within  the flowers before shooting  to the other side and stay a moment inside the other side to charge up
+      maybe simulaniously shoot and intersect in the middle 
+    - cylon faster & brighter
+    - edit animation path in the outer flowers for all animations 
+    - exclude fire & water palettes on palette cycle 
 
   next version main PCB:
   
@@ -144,8 +157,6 @@ To do:
       | D7   ⁪| 20   ⁪| Rx   |              |
       |------|------|------|--------------|
 
-                  
-
 
     mode      | static   | trail    | Ani   | Fire | Ambient | brightness | battery  |
    -----------|----------|----------|-------|------|---------|------------|----------|
@@ -174,7 +185,9 @@ To do:
 */
 
 #include "Nightstick.h"
+#include "Palettes.h"
 //--------------------------------------------------------------------------------------------------------------------- Setup
+
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
@@ -185,63 +198,40 @@ void setup(){
   setup_Config(); // find and load config.csv from SD card or write new if not found
   setup_Inputs();
   setup_Batt();
-  setup_FILTER_IMU();
+  start_FILTER_IMU();
   setup_BLE_COM();
   setup_LEDs();
-  memset(pixelBuff,0,sizeof(pixelBuff));  // Filling  the buffer to see at compile time what space is used and whats left - can be removed later
   //startBLE(); // debugging voltage readings & Vref
-  
-   //removeBmp("/Nightstick/BMPs/trails/elements/electric_tangle_wave.bmp");
-   BMPtoRAM("/Nightstick/BMPs/trails/elements/purple_root.bmp");
-   strcpy(cfg.trailsBmp,"purple_root.bmp");
-   strcpy(cfg.trailsFolder,"elements");
+  //start_FFT();//
+  strip.setBrightness(25);
+  //removeBmp("/Nightstick/BMPs/trails/elements/electric_tangle_wave.bmp");
+    
+//   ledMode = LED_TRAIL ; // LED_OFF;// LED_TEST; //
+//   BMPtoRAM("/Nightstick/BMPs/trails/elements/purple_root.bmp");
+//   strcpy(cfg.trailsBmp,"purple_root.bmp");
+//   strcpy(cfg.trailsFolder,"elements");
 }
+// not good enough : colorWaves
+typedef void (*animations[])();
+  animations ani = { plasma, waveRings, rainbow, cylon, bpm, juggle };
+
+  int8_t currentAni = 0;
+char * AniNames[] = {"plasma","waveRings","rainbow","cylon","bpm","juggle"};
+const uint8_t numAnis = (sizeof(ani) / sizeof((ani)[0]));
 
 void loop(){ // all main functions have timining structures integrated
+  
   main_FILTER_IMU();
   main_LEDs();
-  main_BLE_COM();
-  main_Batt();
-  main_Inputs();
-  testAngle();
-}
-float temp_f = 0.0; // abs((int)blendCol); 
-int temp_i1 = 0; // col;
-int temp_i2 = 0; // overCol;
-int temp_i3 = 0; // blendDirCol;
+//  main_BLE_COM();
+//  main_Batt();
+//  main_Inputs();
+ // FFT_main();
 
-void testAngle(){
-  EVERY_N_MILLIS(150) {
-    Serial.print("nblend( ");
-    Serial.print(temp_i1);
-    Serial.print(" , ");
-    Serial.print(temp_i2);
-    Serial.print(" , ");
-    Serial.print(temp_f);// overcol
-    Serial.print(" ) \t Dir= ");
-    Serial.print(temp_i3); // Col
-//    Serial.print("\t");
-//    Serial.print(convFloat); // blend
-    Serial.print("\t");
-    Serial.print(bmp.w );
-    Serial.print("\t");
-    Serial.println();
-   }
-  
- // EVERY_N_MILLIS(150) {
-//    int8_t i = NUM_LEDS / 2;
-//  Serial.print(convInt);
-//  Serial.print("\t");
-//  Serial.print(roll);
-//  Serial.print("\t");
-//  Serial.print((float)sin(roll));
-//  Serial.print("\t");
-//  Serial.print(roll16);
-//  Serial.print("\t");
-//  Serial.print(sin16(roll16));
-////  Serial.print((float)(ledPixelPos[i+5][0]/100.0));
-////  Serial.print(" | ");
-////  Serial.print((float)(ledPixelPos[i+5][1]/100.0));
-//  Serial.println();
- // }
+ 
+//  EVERY_N_MILLIS(2380){ 
+//      for( uint16_t i = 0; i < NUM_LEDS; i++ ){  Serial.print(ledPixelPos[i][0]); Serial.print('\t');} Serial.println();  
+//      for( uint16_t i = 0; i < NUM_LEDS; i++ ){  Serial.print(ledPixelPos[i][1]); Serial.print('\t');} Serial.println(); 
+//      Serial.println();Serial.println(); 
+//  }
 }

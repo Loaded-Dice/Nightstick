@@ -161,8 +161,8 @@ void checkForSerial(){ // ------------------------- SERIAL read  115200 baud
           rx = Serial.read();
           if(i < SIZE(comBufIn)-1 && !isControl(rx) ){comBufIn[i] = rx;}  // overflow protection
           else{comBufIn[i] = '\0'; 
-            while(Serial.available() > 0){Serial.read(); }
-            break;
+//            while(Serial.available() > 0){Serial.read(); }
+//            break;
           }
         }
         if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
@@ -179,8 +179,11 @@ void serialHandler(){
          if(strcmp(comBufIn, "BLE-ON")          == 0 ){ msgln("BLE On recived"); startBLE();}
     else if(strcmp(comBufIn, "BLE-DISCONNECT")  == 0 ){ msgln("BLE off recived"); disconnectBLE();}
     else if(strcmp(comBufIn, "BLE-OFF")         == 0 ){ msgln("BLE off recived");stopBLE();}
+    else if(strcmp(comBufIn, "BLE-INIT")        == 0 ){ msgln("BLE init recived");setup_BLE_COM();}
     else if(strcmp(comBufIn, "AUTO-LED-ON")     == 0 ){ Bluefruit.autoConnLed(true);}
     else if(strcmp(comBufIn, "AUTO-LED-OFF")    == 0 ){ Bluefruit.autoConnLed(false);}
+    else if(strcmp(comBufIn, "PEAK")            == 0 ){ }
+    else if(strcmp(comBufIn, "CLEAR")           == 0 ){ }
     else if(strncmp (comBufIn, "BLINK,", 6)     == 0 ){
       uint16_t cArrLen = strlen(comBufIn); 
       strcpy(comBufIn, &comBufIn[6]); 
@@ -188,7 +191,7 @@ void serialHandler(){
       if(isInt(comBufIn)){msgln(comBufIn);Bluefruit.setConnLedInterval(convInt);}
       }
       else if(strncmp (comBufIn, "LED", 3)  == 0 ){setBoardLed(comBufIn[3], comBufIn[4]);} // LEDR1 for Red channel high
-    else if(strcmp(comBufIn, "ROLL")       == 0){testAngle();}
+    else if(strcmp(comBufIn, "ROLL")       == 0){}
     else if(isInt(comBufIn) && convInt < NUM_LEDS && convInt >= 0){ledMode = LED_TEST; ledsClear(); leds[convInt] = CRGB::Red; ledsShow(); comBufIn[0] = '\0';} 
     else{msg("UNKNOWN CMD:  ");msg(comBufIn); msgln("  \n");}
 
