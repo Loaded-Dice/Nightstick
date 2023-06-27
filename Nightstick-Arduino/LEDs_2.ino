@@ -2,16 +2,29 @@
 other LED animations 
 no setup_X() or main_X()
 */
+//functPtr functCall, char * functName, bool active
+
+
 void ani_main(){
-  ani[currentAni]();
-  if(aniNextAuto){
-    EVERY_N_SECONDS(SECONDS_PER_ANIMATION){
-      if(DEBUG){Serial.print("now:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(AniNames[currentAni]);}
-      nextAni();
-      if(DEBUG){Serial.print("next:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(AniNames[currentAni]);}
-    }
-  }
+  if(aniList[currentAni].active){ aniList[currentAni].functCall(); }
+  else if(!aniList[currentAni].active && aniNextAuto){nextAni();}
+//  switch(currentAni){
+//    case 0: plasma(); break;
+//    case 1: waveRings(); break;
+//    case 2: rainbow(); break;
+//    case 3: cylon(); break; // 
+//    case 4: bpm(); break;//
+//    case 5: juggle(); break;//
+//    default: break;
+//  }
+  if(aniNextAuto){ EVERY_N_SECONDS(SECONDS_PER_ANIMATION){ nextAni();} }
 }
+//typedef void (*animations[])();
+ // animations ani = { plasma, waveRings, rainbow, cylon, bpm, juggle };
+
+  
+
+
 
 //create virtual area to spread the roll angle offset
 const uint8_t vWidth = 13; // virtual led strip length
@@ -179,7 +192,8 @@ void juggle() {
   byte dothue = 0;
   for( int i = 0; i < 8; i++) {
     //CHSV newColor = ColorFromPalette(currentPal,dothue, 200, 255);
-    leds[beatsin16(i+7,0,NUM_LEDS)] |= getCurrentPalColor(dothue, 255,  255);
+    
+    leds[safe( beatsin16(i+7,0,NUM_LEDS))] |= getCurrentPalColor(dothue, 255,  255);
     //leds[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
@@ -204,8 +218,9 @@ void cylon(){ // ---------------------------------------------------------------
   
   EVERY_N_MILLISECONDS( 10 ) {
     counter++;
-    if(counter < NUM_LEDS){leds[counter] = getCurrentPalColor(hue++, 255,  255);  ledsShow();  fadeall();}
-    if(counter >= NUM_LEDS && counter < (2*NUM_LEDS)){leds[NUM_LEDS-(counter-NUM_LEDS)] = getCurrentPalColor(hue++, 255,  255); ledsShow();  fadeall();}
+    //counter = counter % NUM_LEDS;
+    if(counter < NUM_LEDS){leds[safe(counter)] = getCurrentPalColor(hue++, 255,  255);  ledsShow();  fadeall();}
+    if(counter >= NUM_LEDS && counter < (2*NUM_LEDS)){leds[safe(NUM_LEDS-(counter-NUM_LEDS))] = getCurrentPalColor(hue++, 255,  255); ledsShow();  fadeall();}
      if(counter >= (2*NUM_LEDS-2)){counter=0;}
     }
 }

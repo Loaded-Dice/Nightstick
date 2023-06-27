@@ -188,10 +188,11 @@ To do:
 #include "Palettes.h"
 //--------------------------------------------------------------------------------------------------------------------- Setup
 
+
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
-//  if(DEBUG){while (!Serial.available()) { yield();}}
+  if(DEBUG){while (!Serial.available()) { yield();}}
 //  Serial.print("TEST");
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
@@ -212,12 +213,19 @@ void setup(){
 //   strcpy(cfg.trailsFolder,"elements");
 }
 // not good enough : colorWaves
-typedef void (*animations[])();
-  animations ani = { plasma, waveRings, rainbow, cylon, bpm, juggle };
 
-  int8_t currentAni = 0;
-char * AniNames[] = {"plasma","waveRings","rainbow","cylon","bpm","juggle"};
-const uint8_t numAnis = (sizeof(ani) / sizeof((ani)[0]));
+
+static const animations aniList[] = {
+  {plasma,    "plasma",   true},
+  {waveRings, "waveRings",true},
+  {rainbow,   "rainbow",  true},
+  {cylon,     "cylon",    true},
+  {bpm,       "bpm",      true},
+  {juggle,    "juggle",   true}
+};
+const uint8_t numAnis = SIZE(aniList); //(sizeof(aniList) / sizeof((aniList)[0]));
+
+
 
 void loop(){ // all main functions have timining structures integrated
   
@@ -228,6 +236,10 @@ void loop(){ // all main functions have timining structures integrated
 //  main_Inputs();
  // FFT_main();
 
+ 
+if(paletteNextAuto){Serial.print(millis()); Serial.print("\t paletteNextAuto on - ani: ");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
+if(paletteFadeAuto){Serial.print(millis()); Serial.print("\t paletteFadeAuto on");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
+if(paletteFadeAuto && paletteNextAuto){Serial.print("both on - long delay"); Serial.println(); delay(10000);}
  
 //  EVERY_N_MILLIS(2380){ 
 //      for( uint16_t i = 0; i < NUM_LEDS; i++ ){  Serial.print(ledPixelPos[i][0]); Serial.print('\t');} Serial.println();  

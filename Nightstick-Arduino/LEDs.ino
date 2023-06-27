@@ -300,6 +300,8 @@ CHSV rgb2hsv(CRGB input) {
     return output;
 }
 
+uint16_t safe(int ledIdx){ return ledIdx % NUM_LEDS;}
+
 
 // input -64 to 64 | output -128 to 128
 int8_t getQuadSpeed(int8_t gravAngle){ return (gravAngle / abs(gravAngle)) * (255-quadwave8(128+gravAngle)) ;}
@@ -377,10 +379,14 @@ bool paletteEqualsPalette( CRGBPalette16& current, CRGBPalette16& target){
     return true;
 }
 
-void nextAni(){ currentAni = (currentAni + 1) % SIZE(ani);}
+void nextAni(){ 
+if(DEBUG){Serial.print("now:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(aniList[currentAni].aniName);}
+currentAni = (currentAni + 1) % numAnis;
+if(DEBUG){Serial.print("next:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(aniList[currentAni].aniName);}
 
+}
 void lastAni(){
-  if(currentAni - 1 < 0){ currentAni = SIZE(ani)-1; }
+  if(currentAni - 1 < 0){ currentAni = numAnis-1; }
   else{currentAni--;}
  }
 

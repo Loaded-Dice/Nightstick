@@ -123,7 +123,7 @@ FASTLED_USING_NAMESPACE
 #define NUM_LEDS   254 // real number of LEDs
 #define NUM_VLEDS  138 // virtual number of LEDs. used for a correct roll and yaw 2D projection
 #define SECONDS_PER_PALETTE 10
-#define SECONDS_PER_ANIMATION 25
+#define SECONDS_PER_ANIMATION 2
 
 // Dfinitions for ledMode ( determine only the current playing led animation)
 #define LED_OFF       0
@@ -137,6 +137,11 @@ FASTLED_USING_NAMESPACE
 #define LED_TEST      8   // For testing new stuff
 uint8_t ledMode = LED_ANI;// LED_TEST; //LED_TRAIL
 uint8_t ledModeLast = LED_ANI;// LED_TEST;
+
+typedef void (*functPtr)();
+int8_t currentAni = 0;
+
+struct animations{ functPtr functCall; char * aniName; bool active;};
 
 struct pos_f{  float x; float y;};
 
@@ -365,3 +370,7 @@ eqBand EQ[8] = {// ampl fract,peak,lastpeak,lastval,lastmeasured
 };
 
 //-----------------------------------------------------------------------------
+
+//char * AniNames[] = {"plasma","waveRings","rainbow","cylon","bpm","juggle"};
+//const uint8_t numAnis = 6;
+//int8_t currentAni = 0;
