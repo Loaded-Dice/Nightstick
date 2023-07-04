@@ -7,33 +7,64 @@ void setup_LEDs(){
   ledsClear();
 }
 
+
 void main_LEDs(){
  
-if(ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
+if(cfg.ledMode == LED_OFF && ledModeLast == LED_OFF){return;}
+if(cfg.ledMode == LED_OFF && ledModeLast != cfg.ledMode){ledsClear();ledsClear();ledsClear();}
+if((cfg.ledMode == LED_STATIC || cfg.ledMode == LED_TRAIL ) && ledModeLast != cfg.ledMode){ updateRamBmp(); }
 
- if(ledMode == LED_OFF && ledModeLast != ledMode){ledsClear();ledsClear();ledsClear();}
-    
    EVERY_N_MILLIS(DELAYMS_SHOWLED) {
-    gHue++;
-    //if(ledMode != ledModeLast && ledMode == LED_STATIC){chkBmpLoaded();};
-     if (ledMode != LED_STATIC && ledMode != LED_TRAIL && blendMulti == 100){blendMulti = 1;} //set multiplier for blending
-    switch (ledMode) {
-      case LED_STATIC: Led2Pixel_static(); drawRamPixel(true);  break;
-      case LED_TRAIL:  Led2Pixel_trails(); drawRamPixel(true);  break; // only for testing Led2Pixel_static is for static bmps!
-      case LED_ANI: ani_main();  break; //RGBorbit(); plasma(); waveRings();
+    gHue++;    
+    switch (cfg.ledMode) {
+      case LED_STATIC: Led2Pixel_static(); drawRamPixel(false);  break;
+      case LED_TRAIL:  Led2Pixel_trails(); drawRamPixel(false);  break; // only for testing Led2Pixel_static is for static bmps!
+      case LED_ANI: ani_main();  break;
       case LED_FIRE: make_fire();  break;
-      case LED_BRIGHT:  break;
-      case LED_BATT:  break;
+      case LED_BATT: ledBatt();  break;
       case LED_BLE:  break;
       case LED_TEST:   break;
       default:  break; 
     }
-  ledsShow();
-  }
+   }
+  main_FILTER_IMU();
+  EVERY_N_MILLIS(DELAYMS_SHOWLED) {
+    ledsShow();
+  if(cfg.ledMode == LED_ANI && blendMulti > 50.0){blendMulti = 1.0;}
+  else if (cfg.ledMode != LED_ANI && blendMulti < 50.0){blendMulti = 100.0;}
   paletteFade();
-  ledModeLast = ledMode; 
+  }
+  ledModeLast = cfg.ledMode; 
 }
 
+
+void switchLedMode(int8_t dir){ // dir = -1 or 1
+  cfg.ledMode = cfg.ledMode + dir;
+  setLedMode();
+}
+void setLedMode(){ // dir = -1 or 1
+  //LED_STATIC=1 //LED_TRAIL=2   //  LED_ANI=3 //LED_FIRE=4   //LED_BATT=5 
+  ledsClear();ledsClear();
+  if(cfg.ledMode < 1){cfg.ledMode = 5;}
+  else if(cfg.ledMode > 5){cfg.ledMode = 1;}
+
+  if(cfg.ledMode == LED_TRAIL){colTrail = 0.0;} 
+  else if(cfg.ledMode == LED_BATT){initBatt = 0;}
+ // else if(cfg.ledMode == LED_FIRE){newPaletteIdx(11);}
+  
+//  if(cfg.ledMode == LED_ANI){blendMulti = 1.0;}
+//  else{blendMulti = 100.0;}
+  writeCfg();
+}
+
+void changeBright( int8_t delta ){
+  if(cfg.bright + delta < 10){cfg.bright = 10;}
+  else if(cfg.bright + delta > 80 ){cfg.bright = 80;}
+  else{cfg.bright += delta;}
+  strip.setBrightness(cfg.bright);
+  //Serial.print("New brightness: ");Serial.println(cfg.bright);
+  writeCfg();
+}
 
 void fastToNeo(){for(int i = 0; i < NUM_LEDS; i++){ strip.setPixelColor(i, leds[i].r, leds[i].g, leds[i].b); }}
 
@@ -117,11 +148,11 @@ void drawRamPixel(bool interpolation) {
       blendRow = (blendRow-0.5)*255; // range from -255 to 255
       overCol = col + ((int)blendCol/abs((int)blendCol)); // set overlay column to col +/- 1
       
-      if(ledMode == LED_TRAIL){ col = wrap_int(col,bmp.w); overCol = wrap_int(overCol,bmp.w);}
+      if(cfg.ledMode == LED_TRAIL){ col = wrap_int(col,bmp.w); overCol = wrap_int(overCol,bmp.w);}
       
       if(blendCol != 0.0){ p2 = getPixel(overCol,row); nblend(p1,p2,(uint8_t)abs(blendCol)); }
       
-      if(ledMode == LED_STATIC){
+      if(cfg.ledMode == LED_STATIC){
         overRow = row + ((int)blendRow/abs((int)blendRow)); // set overlay row to row +/- 1
         p3 = getPixel(col,overRow);
         p4 = getPixel(overCol,overRow);
@@ -230,11 +261,11 @@ void set12RingPx(uint16_t vIdx, float vx, float vy){
   //multiply the XY result by 100 for blending function
 
 
-      if(ledMode == LED_STATIC || ledMode == LED_ANI){
+      if(cfg.ledMode == LED_STATIC || cfg.ledMode == LED_ANI){
         ledPixelPos[real1stIdx + i][0] = (vx + ( ledVector[1] * coef ))*blendMulti; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
         ledPixelPos[real1stIdx + i][1] = (vy + (-ledVector[0] * coef ))*blendMulti; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
       }
-      else if( ledMode == LED_TRAIL ){
+      else if( cfg.ledMode == LED_TRAIL ){
         ledPixelPos[real1stIdx + i][0] = wrap_float(vx + coef, bmp.w)*blendMulti; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
         ledPixelPos[real1stIdx + i][1] = vy*blendMulti; // ledVector[] is here already rotated by 90°  and maybe inverted when coef is <0
 
@@ -250,11 +281,11 @@ void setMiniStripsPx(uint16_t vIdx, float vx, float vy, uint8_t side){
       else{ rIdx = stripLedPos[side][i] + vIdx;}
       float coef = getOffScaling(stripOff16[side][i]);
       
-      if(ledMode == LED_STATIC || ledMode == LED_ANI){
+      if(cfg.ledMode == LED_STATIC || cfg.ledMode == LED_ANI){
         ledPixelPos[rIdx][0] = (vx + ( ledVector[1] * coef ))*blendMulti; //multiply the XY result by 100 for blending function
         ledPixelPos[rIdx][1] = (vy + (-ledVector[0] * coef ))*blendMulti; //multiply the XY result by 100 for blending function
       }
-      else if( ledMode == LED_TRAIL ){
+      else if( cfg.ledMode == LED_TRAIL ){
         ledPixelPos[rIdx][0] = wrap_float(vx +  coef, bmp.w )*blendMulti; //multiply the XY result by 100 for blending function
         ledPixelPos[rIdx][1] =    (vy * blendMulti); //multiply the XY result by 100 for blending function
       }
@@ -303,8 +334,8 @@ CHSV rgb2hsv(CRGB input) {
 uint16_t safe(int ledIdx){ return ledIdx % NUM_LEDS;}
 
 
-// input -64 to 64 | output -128 to 128
-int8_t getQuadSpeed(int8_t gravAngle){ return (gravAngle / abs(gravAngle)) * (255-quadwave8(128+gravAngle)) ;}
+//getQuad(int8_t gravAngle) input -64 to 64 | output -128 to 128
+int8_t getQuad(int8_t input){ return (input / abs(input)) * (255-quadwave8(128+input)) ;}
 
 //CRGB   ColorFromPalette (const CRGBPalette16 &pal, uint8_t index, uint8_t brightness=255, TBlendType blendType=LINEARBLEND)
 CRGB getCurrentPalColor(uint8_t hue, uint8_t sat, uint8_t bright = 255){
@@ -315,7 +346,7 @@ CRGB getCurrentPalColor(uint8_t hue, uint8_t sat, uint8_t bright = 255){
 }
 
 CRGB getCurrentPalColor(CHSV input){
-  CRGB ledColor = input;;
+  CRGB ledColor = input;
   if(paletteActive){ ledColor = ColorFromPalette(currentPal, input.h, input.v, LINEARBLEND); }
   return ledColor;
 }
@@ -333,20 +364,21 @@ CRGB getTargetPalColor(CHSV input){
   return ledColor;
 }
 
-bool fadeNow = false;
+
 
 void paletteFade(){
   
   if(!paletteFadeAuto){return;}
   if(paletteNextAuto){
-    EVERY_N_SECONDS( SECONDS_PER_PALETTE ) {  nextPalette(); }
+    EVERY_N_SECONDS( paletteTimeS ) {  nextPalette(); }
   }
   
   if(fadeNow){
       EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette( currentPal, targetPal, 24);  }//32
       EVERY_N_MILLISECONDS(200) { 
         if(paletteEqualsPalette(currentPal, targetPal)){
-          iCurrentPal = iTargetPal; 
+          cfg.palette = iTargetPal; 
+          writeCfg();
           fadeNow = false;
           if(DEBUG){ Serial.println("fade pal off"); }
           }
@@ -354,20 +386,17 @@ void paletteFade(){
   }
 }
 
-void nextPalette(){ newPaletteIdx(iCurrentPal + 1);}
+void nextPalette(){ newPaletteIdx(cfg.palette + 1);}
 
-void lastPalette(){ newPaletteIdx(iCurrentPal - 1);}
+void lastPalette(){ newPaletteIdx(cfg.palette - 1);}
 
 void newPaletteIdx(int8_t idxPalette){
   iTargetPal = wrap_int(idxPalette, numPalettes);
+  writeCfg();
   targetPal  = gradientPalettes[iTargetPal];
   if(paletteFadeAuto) { 
     fadeNow = true; 
-    if(DEBUG){ 
-      Serial.println("fade palette on"); 
-      Serial.print("current palette: "); Serial.print(paletteNames[iCurrentPal]);
-      Serial.print("\t - \t new target palette: "); Serial.println(paletteNames[iTargetPal]);
-      }
+
     }
 }
 
@@ -380,14 +409,14 @@ bool paletteEqualsPalette( CRGBPalette16& current, CRGBPalette16& target){
 }
 
 void nextAni(){ 
-if(DEBUG){Serial.print("now:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(aniList[currentAni].aniName);}
-currentAni = (currentAni + 1) % numAnis;
-if(DEBUG){Serial.print("next:\t# "); Serial.print(currentAni);Serial.print(" / "); Serial.print(numAnis); Serial.print('\t'); Serial.println(aniList[currentAni].aniName);}
-
+cfg.ledAni = (cfg.ledAni + 1) % numAnis;
+  writeCfg();
 }
+
 void lastAni(){
-  if(currentAni - 1 < 0){ currentAni = numAnis-1; }
-  else{currentAni--;}
+  if(cfg.ledAni - 1 < 0){ cfg.ledAni = numAnis-1; }
+  else{cfg.ledAni--;}
+    writeCfg();
  }
 
-void newAniIdx(int8_t idxAni){ currentAni = wrap_int(idxAni, numAnis); }
+void newAniIdx(int8_t idxAni){ cfg.ledAni = wrap_int(idxAni, numAnis); writeCfg(); }

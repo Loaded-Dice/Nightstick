@@ -51,6 +51,7 @@ void readCfg(){
   }
   file.close();
   chkBmpsAndFolders(); // see at SD.ino tab
+  updateRamBmp();
 }
 
 bool parseLine(char* buff, uint16_t lineLen) {

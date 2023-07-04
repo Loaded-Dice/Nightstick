@@ -10,10 +10,11 @@
 #define SDCS_PIN    D2
 #define BTN_PIN     A3
 //---==={DEFINITIONS - COMMON / DELAYS}===---//
-#define DELAYMS_FILTERIMU 10 // 100Hz
-#define DELAYMS_SHOWLED   10 // 100Hz
-#define DELAYMS_READBTN   15 //
-#define DELAYMS_READBATT  500  //1000
+//#define DELAYMS_FILTERIMU 10 // 100Hz or 10 ms fixed
+#define DELAYMS_SHOWLED   25 // 100Hz
+#define DELAYMS_FILTER    25 // 100Hz
+#define DELAYMS_READBTN   30 //
+#define DELAYMS_READBATT  300  //1000
 #define DELAYMS_LEDOFF    2000  //
 //--=={DEFINITIONS - COMMON / Inputs}==--//
 
@@ -26,10 +27,10 @@
 #define BTN_RANGE   50    //value +/- Range
 #define BTN_MIN     500  // if value > BTN_MIN --> btn-pressed else relese
 #define LONGTIME    450 // time in ms
-#define ULONGTIME  2200
+#define MAXTIME  900
 #define A_SHORT   1
 #define B_SHORT   2
-#define C_SHORT   2
+#define C_SHORT   3
 #define A_LONG    4
 #define B_LONG    5
 #define C_LONG    6
@@ -53,7 +54,7 @@ Btn btn;
 
 //---==={DEFINITIONS - COMMON / System}===---//
 //#include <avr/dtostrf.h>
-#define DEBUG 1
+#define DEBUG false
 #define SIZE(ARRAY)    (sizeof(ARRAY) / sizeof(ARRAY[0]))
 #define ON  true
 #define OFF false
@@ -63,8 +64,10 @@ Btn btn;
 #define ERRSHORT 300  // for internal led blink timing
 #define RAD(A)  (A * 71) / 4068.0  // convert degree to radians
 #define DEG(A)  (A*4068) / 71.0    // convert radians to degree
-#define RADTO16(A) (A * 10430.378350)
+#define RADTO16(A) (A * 10430.378350) // A / (2 * M_PI) * 65535
 #define DEGTO16(A) (A * 182.044444) // A / 360 * 65535
+#define U16TORAD(A) (A / 10430.378350) //
+#define U16TOGED(A) (A / 182.044444) // A / 360 * 65535
 #define OFF false
 #define On true     
 
@@ -83,6 +86,17 @@ Btn btn;
 #define TYPE_BMP 1
 #define TYPE_CFG 2
 #define MAXFILECHARS 51 // 50 + null
+const char *  modeNames[] = {"Off","Static","Trail","Animation","Fire","Battery"};
+// Dfinitions for ledMode ( determine only the current playing led animation)
+#define LED_OFF       0
+#define LED_STATIC    1
+#define LED_TRAIL     2
+#define LED_ANI       3
+#define LED_FIRE      4
+#define LED_BATT      5
+#define LED_BLE       6
+#define LED_TEST      7   // For testing new stuff
+
 //---==={VARIABLES - COMMON / SYSTEM}===---//
 uint8_t lastErrID = 0; // 
 struct errInfo{  char msg[MAXFILECHARS]; bool logSD; char ch1; uint16_t t1; char ch2; uint16_t t2; bool ledLoop;};
@@ -98,6 +112,8 @@ static const uint8_t errInfoCount = sizeof(errInfoArr)/sizeof(errInfo);
 
 char charBuff[MAXFILECHARS*4];  // generic char buffer (BLE has own buffer)
 char pathBuff[MAXFILECHARS*4];
+char fileBuff[MAXFILECHARS];
+char folderBuff[MAXFILECHARS];
 //--------------------------------------------------------------------------------------------------------------------- Batt
 //--=={DEFINITIONS - Batt}==--//
 #define AVG_BATTREAD 4 // average batteryvoltage after n readings
@@ -108,116 +124,9 @@ float vBat = 4.2;   // battery volatge (corrected)
 uint8_t pBat = 100;   // battery percentage (3.65V to 4.2V);
 float rawBat = 0.0;
 float maxBat = 4.2;   // save scaled raw analog Batt val (for btn read volt.div.)
+uint8_t initBatt = 0;
 const uint16_t vLookUp[]   = {268,  278, 288, 298, 308, 318, 328, 339, 349, 359, 369, 379, 389, 399, 409, 419}; //( vBat*100 )
 const uint16_t rawLookUp[] = {1168,1205,1239,1285,1315,1357,1398,1443,1488,1533,1566,1610,1650,1690,1733,1775}; //(Analog voltage @ 12 Bit; vRef = 3.0V)
-
-//--------------------------------------------------------------------------------------------------------------------- LEDs
-//---==={DEFINITIONS - LEDs}===---//
-#include <FastLED.h> 
-FASTLED_USING_NAMESPACE
-#include <colorpalettes.h>
-#include <Adafruit_NeoPixel.h>
-#define FRAMES_PER_SECOND  100 //
-#define max_bright 50
-#define min_bright 10
-#define NUM_LEDS   254 // real number of LEDs
-#define NUM_VLEDS  138 // virtual number of LEDs. used for a correct roll and yaw 2D projection
-#define SECONDS_PER_PALETTE 10
-#define SECONDS_PER_ANIMATION 2
-
-// Dfinitions for ledMode ( determine only the current playing led animation)
-#define LED_OFF       0
-#define LED_STATIC    1
-#define LED_TRAIL     2
-#define LED_ANI       3
-#define LED_FIRE      4
-#define LED_BRIGHT    5
-#define LED_BATT      6
-#define LED_BLE       7
-#define LED_TEST      8   // For testing new stuff
-uint8_t ledMode = LED_ANI;// LED_TEST; //LED_TRAIL
-uint8_t ledModeLast = LED_ANI;// LED_TEST;
-
-typedef void (*functPtr)();
-int8_t currentAni = 0;
-
-struct animations{ functPtr functCall; char * aniName; bool active;};
-
-struct pos_f{  float x; float y;};
-
-CRGB leds[NUM_LEDS];
-//CRGBPalette16 currentPalette = OceanColors_p;//PartyColors_p
-CRGBPalette16 currentPalette = {
-  0xFF0000, 0x7F0000, 0xAB5500, 0x552A00, 0xABAB00, 0x555500, 0x00FF00, 0x007F00,
-  0x00AB55, 0x00552A, 0x0000FF, 0x00007F, 0x5500AB, 0x2A0055, 0xAB0055, 0x55002A
-};
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);//254
-
-//---==={VARIABLES - LEDs }===---//
-uint8_t gHue = 0;
-//uint8_t BRIGHTNESS = 40;// 40; // 40 = 155mA ; 3,8h at 600mA
-uint8_t gCurrentPatternNumber = 0;
-
-uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
-float ledVector[2] = {0.0,0.0};
-float colTrail = 0.0;   // store the current trails colum
-float trailSpeed = 0.5; // 182 (yaw16) units = 1° per bmp colum 
-float blendMulti = 100.0;
- 
-bool paletteActive = true; // if active getColor(h,s,v) returns color from palette as CRGB, otherwise return CHSV(h,s,v)
-bool paletteNextAuto = false; // automatic load  iCurrentPal+1 to targetPal after SECONDS_PER_PALETTE
-bool paletteFadeAuto = false; // when off 2 palettes can be loaded at the same time without fade
-
-bool aniNextAuto = true;
-//shall get overwritten by calibration:
-//uint16_t ringOff16[4] & uint16_t stripOff16[2][4]
-// would be 12 calibration points
-// offset scaled to uint_16 for first ring LEDs (leds to light up in calib: #0,#60,#182,#242)
-
-uint16_t ringOff16[4] = {38229,    36408,   40049,   18204}; //first leds roll offset for each led-ring. other offsets are calculated with angle16Ring[]
-int angle16Ring[12] = { 0,   3641,  7282,  16384, 20025, 23665, 32768, 36408, 40049, 49151, 52792, 56433}; // uint16_t angle offset in led ring relative to first LED within the ring
-float rollDistMaxPx = 6.0;// max pixel distaance for roll angle 2D projection
-//                                cpu side                          battery side
-uint16_t stripOff16[2][4] =  {{25486,  9102,  58253, 41870},{30947,  47331, 63715, 14563}};//mini strip led roll offset scaled to uint_16 for mini strips cpu side (leds to light up in calib: #12 ->#23, #24 ->#35, #36 ->#47, #48 ->#59 )
-const uint16_t stripLedPos[2][4] = {{24,     36,    48,    60, } ,{69,     81,    93,    105 }}; // mini strip LED starting position
-//--------------------------------------------------------------------------------------------------------------------- BLE_COM
-//---==={DEFINITIONS - BLE_COM}===---//
-#include <bluefruit.h>
-#define BLE_FAST_TIMEOUT  90
-#define BLE_TIMEOUT       120
-#define TERM_CHAR         '\n'
-#define BLE_BUFSIZE       150
-BLEDis  bledis;  // device information
-BLEUart bleuart; // uart over ble
-BLEBas  blebas;  // battery service
-#define BLE_OFF           0   // BLE OFF
-#define BLE_ADV           1   // BLE Service Advertising
-#define BLE_CONN          2   // Peer connected
-uint8_t bleMode = BLE_OFF;
-
-//---==={VARIABLES - BLE_COM}===---//
-char comBufIn[BLE_BUFSIZE];
-char comBufOut[BLE_BUFSIZE];
-bool newBleData =false;
-bool newSerialData =false;
-
-//--------------------------------------------------------------------------------------------------------------------- Filter_IMU
-//---==={DEFINITIONS - Filter_IMU}===---//
-#include <Arduino_LSM6DS3.h>
-//#include <MahonyAHRS.h>
-//Mahony filter;
-#include<MadgwickAHRS.h>
-Madgwick filter;
-
-//MahonyAHRS MadgwickAHRS filter;
-
-uint8_t imuMode = OFF; // ON OFF
-//---==={VARIABLES - Filter_IMU}===---//
-float roll, pitch, yaw, yawLast;
-uint16_t roll16,pitch16,yaw16,yaw16Last;
-float ax, ay, az;
-float gx, gy, gz;
-
 //--------------------------------------------------------------------------------------------------------------------- SD
 //---==={DEFINITIONS - SD}===---//
 #include "SdFat.h"
@@ -289,7 +198,7 @@ char lastBmp[50]; // char buffer to store last visited bitmap while checking bmp
 
 struct cfgFile{ // initialize with std values  and overwrite atrr from SD id found
   char bleName[30] ="Nightstick";
-  uint8_t bright = 35;
+  uint8_t bright = 25;
   char staticBmp[MAXFILECHARS] = "-";
   char staticFolder[MAXFILECHARS*2] ="-"; // store 2 Folders= trails/elements or static/full
   char trailsBmp[MAXFILECHARS] = "-";
@@ -326,6 +235,112 @@ float convFloat;
 bool convBool;
 
 //--------------------------------------------------------------------------------------------------------------------- LEDs
+//---==={DEFINITIONS - LEDs}===---//
+#include <FastLED.h> 
+FASTLED_USING_NAMESPACE
+#include <colorpalettes.h>
+#include <Adafruit_NeoPixel.h>
+#define FRAMES_PER_SECOND  100 //
+#define max_bright 50
+#define min_bright 10
+#define NUM_LEDS   254 // real number of LEDs
+#define NUM_VLEDS  138 // virtual number of LEDs. used for a correct roll and yaw 2D projection
+
+
+CRGB leds[NUM_LEDS];
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);//254
+
+#include "Palettes.h"
+//---==={VARIABLES - LEDs }===---//-----------------------------------------------------------------------------------------
+
+//uint8_t ledMode = LED_STATIC;// LED_TEST; //LED_TRAIL // LED_BRIGHT // LED_STATIC
+uint8_t ledModeLast = LED_STATIC;// LED_TEST;
+
+typedef void (*functPtr)();
+struct animations{ functPtr functCall; char * aniName; bool active;};
+//int8_t currentAni = 0;
+uint8_t paletteTimeS = 20;
+uint8_t aniTimeS = 60;
+
+struct pos_f{  float x; float y;};
+uint8_t gHue = 0;
+//uint8_t BRIGHTNESS = 40;// 40; // 40 = 155mA ; 3,8h at 600mA
+uint8_t gCurrentPatternNumber = 0;
+
+uint16_t ledPixelPos[NUM_LEDS][2]; // x and y position 
+float ledVector[2] = {0.0,0.0};
+float colTrail = 0.0;   // store the current trails colum
+float trailSpeed = 0.5; // 182 (yaw16) units = 1° per bmp colum 
+float blendMulti = 100.0;
+ 
+bool paletteActive = true; // if active getColor(h,s,v) returns color from palette as CRGB, otherwise return CHSV(h,s,v)
+bool paletteNextAuto = false; // automatic load  iCurrentPal+1 to targetPal after paletteTimeS
+bool paletteFadeAuto = true; // when off 2 palettes can be loaded at the same time without fade
+bool aniNextAuto = false;
+bool fadeNow = false;
+//uint8_t currentAni = 0; //cfg.ledAni
+//uint8_t iCurrentPal = 0; // cfg.palette
+uint8_t iTargetPal = 1;
+const uint8_t numPalettes = SIZE(gradientPalettes); //sizeof( gradientPalettes) / sizeof( TProgmemRGBGradientPalettePtr );
+CRGBPalette16 currentPal = gradientPalettes[cfg.palette];
+CRGBPalette16 targetPal  = gradientPalettes[iTargetPal];
+
+
+//--------------------------------------------------------------------------------------------------------------------- BLE_COM
+//---==={DEFINITIONS - BLE_COM}===---//
+#include <bluefruit.h>
+#define BLE_FAST_TIMEOUT  90
+#define BLE_TIMEOUT       120
+#define TERM_CHAR         '\n'
+#define BLE_BUFSIZE       150
+BLEDis  bledis;  // device information
+BLEUart bleuart; // uart over ble
+BLEBas  blebas;  // battery service
+#define BLE_OFF           0   // BLE OFF
+#define BLE_ADV           1   // BLE Service Advertising
+#define BLE_CONN          2   // Peer connected
+uint8_t bleMode = BLE_OFF;
+uint8_t bakLedMode = LED_OFF; // backup led mode to return after BLE animation
+//---==={VARIABLES - BLE_COM}===---//
+char comBufIn[BLE_BUFSIZE];
+char comBufOut[BLE_BUFSIZE];
+bool newBleData =false;
+bool newSerialData =false;
+
+//--------------------------------------------------------------------------------------------------------------------- Filter_IMU
+//---==={DEFINITIONS - Filter_IMU}===---//
+#include "LSM6DS3.h"
+#include "Wire.h"
+LSM6DS3 myIMU(I2C_MODE, 0x6A);    //I2C device address 0x6A
+#include "SensorFusion.h" //SF
+SF fusion;
+float deltat;
+float imuTemp = 0.0;
+unsigned long tmeas;
+int deltaMeas;
+uint8_t imuMode = OFF; // ON OFF
+//---==={VARIABLES - Filter_IMU}===---//
+float roll, pitch, yaw, yawDelta;
+uint16_t roll16,pitch16,yaw16,yaw16Last;
+float ax, ay, az;
+float gx, gy, gz;
+float accl[3];
+float gyro[3];
+
+//shall get overwritten by calibration:
+//uint16_t ringOff16[4] & uint16_t stripOff16[2][4]
+// would be 12 calibration points
+// offset scaled to uint_16 for first ring LEDs (leds to light up in calib: #0,#60,#182,#242)
+
+uint16_t ringOff16[4] = {38229,    36408,   40049,   18204}; //first leds roll offset for each led-ring. other offsets are calculated with angle16Ring[]
+int angle16Ring[12] = { 0,   3641,  7282,  16384, 20025, 23665, 32768, 36408, 40049, 49151, 52792, 56433}; // uint16_t angle offset in led ring relative to first LED within the ring
+float rollDistMaxPx = 6.0;// max pixel distaance for roll angle 2D projection
+//                                cpu side                          battery side
+uint16_t stripOff16[2][4] =  {{25486,  9102,  58253, 41870},{30947,  47331, 63715, 14563}};//mini strip led roll offset scaled to uint_16 for mini strips cpu side (leds to light up in calib: #12 ->#23, #24 ->#35, #36 ->#47, #48 ->#59 )
+const uint16_t stripLedPos[2][4] = {{24,     36,    48,    60, } ,{69,     81,    93,    105 }}; // mini strip LED starting position
+
+//--------------------------------------------------------------------------------------------------------------------- LEDs
 //---==={DEFINITIONS - FFT}===---//
 #include <PDM.h>
 #include <arduinoFFT.h>
@@ -337,11 +352,12 @@ arduinoFFT FFT = arduinoFFT();
 
 //---==={VARIABLES - FFT}===---//
 
-
 //Audio variables (ForFFT & PDM)
 volatile static bool samples_ready = false;
 uint8_t fftStep = 0; // split FFT into 3 steps to render led frames inbetween
 uint8_t audioGain = 30; // gain value of the PDM microphone (default 20)
+uint16_t audioThresh = 1000;
+uint8_t eqDimMax = 64;
 bool fftMode = false; //  start_Audio() --> true; stop_Audio() -->false
 unsigned long eqStart; // FFT will start with a blast. to avoid this give it one second to sample enough data. this var will measure the time
 
@@ -356,9 +372,19 @@ struct eqBand {
   int lastpeak;
   uint16_t lastval;
   unsigned long lastmeasured;
-};
+  // for calculating the min / max peak in the last 3000ms
 
-eqBand EQ[8] = {// ampl fract,peak,lastpeak,lastval,lastmeasured 
+};
+struct eqAmpRange{
+  int ampMin = 5000;
+  unsigned long ampMin_t = 0;
+  int ampMax = 0;
+  unsigned long ampMax_t= 0;
+  const uint16_t decay = 3000; // slowly return ampMax to 0 and rise ampMin to ampMax after 3000 ms 
+};
+eqAmpRange eqRange;
+
+eqBand EQ[8] = {// ampl fract,peak,lastpeak,lastval,lastmeasured, ampMin ,ampMin timer, ampMax, ampMax timer
   {   110, 0, 0, 0, 0},  //0    -> 128 Hz     i <=2
   {   200, 0, 0, 0, 0},  //129  -> 256 Hz     i >=3 && i<=4
   {   200, 0, 0, 0, 0},  //266  -> 512 Hz     i >=5 && i<=8
@@ -369,8 +395,5 @@ eqBand EQ[8] = {// ampl fract,peak,lastpeak,lastval,lastmeasured
   {   50,  0, 0, 0, 0}   //7040 -> 8192 Hz    i >=111 (&&<=128)
 };
 
-//-----------------------------------------------------------------------------
-
-//char * AniNames[] = {"plasma","waveRings","rainbow","cylon","bpm","juggle"};
-//const uint8_t numAnis = 6;
-//int8_t currentAni = 0;
+// measured fft correction values to get a more linear output
+const float freqCalib[113] = {0.0,  0.0, 1.3079793,  1.069392, 0.784344, 0.9103336,  1.0166674,  0.862052, 0.7109092,  0.6427657,  0.7753275,  0.6113147,  0.4977038,  0.6528794,  0.4102594,  0.3913894,  0.7237714,  0.5113062,  0.491581, 0.6531831,  0.8559368,  1.4665207,  1.9665577,  2.1739053,  2.4351664,  2.1376235,  1.8633525,  1.8255845,  2.180384, 1.5464601,  1.6231678,  2.450974, 2.2835728,  2.2933477,  2.4481844,  2.6828074,  2.9802801,  3.1908219,  3.1528289,  3.3493042,  3.9719504,  5.3594922,  6.0969157,  7.5512116,  6.8002132,  6.2995524,  7.049264, 8.5025804,  8.6423623,  8.5025804,  6.2421385,  5.8940065,  5.8308792,  7.1547174,  5.6450937,  4.7016548,  2.9953562,  2.289182, 1.8821454,  2.0298621,  1.9277527,  1.6978568,  2.00691,  1.6753267,  1.6483045,  1.9788069,  2.20481,  2.2698795,  2.2922805,  2.339455, 2.2609692,  2.3103107,  2.9767121,  3.5016091,  3.7774394,  3.5720545,  3.2492898,  3.0435062,  3.0108962,  3.2872719,  3.3061042,  2.6788108,  2.5514675,  2.6003714,  2.9922521,  3.7972216,  5.1530411,  4.964938, 5.2497917,  5.4095423,  6.6076133,  8.1143134,  9.2289323,  9.2289323,  8.9301363,  8.1143134,  7.7601315,  6.8622778,  6.7801759,  7.435715, 8.5025804,  10.2971722, 13.7245555, 16.2286268, 17.8602727, 21.4158875, 22.3687344, 20.6004929, 21.4158875, 19.8597521, 22.3687344, 20.6004929, 18.4663333};

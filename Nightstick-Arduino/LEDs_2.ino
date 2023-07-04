@@ -2,28 +2,35 @@
 other LED animations 
 no setup_X() or main_X()
 */
-//functPtr functCall, char * functName, bool active
+// hue 0 =red, 32 = orange 64 = yellow, 96 = green
+//fill_gradient (T *targetArray, uint16_t startpos, CHSV startcolor, uint16_t endpos, CHSV endcolor, TGradientDirectionCode directionCode=SHORTEST_HUES)
+//pitch
+int8_t battAnz = 0;
+void ledBatt(){
+  static bool toggle = true;
+  static uint8_t rise = 0;
+  EVERY_N_MILLIS(150){toggle = !toggle;} //pBat 0 to 100 fill_solid(leds, NUM_LEDS, CRGB::Black); ledsShow();
+  EVERY_N_MILLIS(25){
+      if(abs(battAnz - pBat) > 6 && rise < pBat){rise++;}
+      else if(abs(battAnz - pBat) > 6 && rise > pBat){rise--;}
+      else if(abs(battAnz - pBat) > 6 && rise == pBat){battAnz = pBat;}
+    }
+
+ // fill_solid(leds, NUM_LEDS, CRGB::Black); 
+  fill_solid(leds, NUM_LEDS, CHSV(160,255,255));
+  if((pBat < 10 && toggle) || (pBat >= 10)){
+  fill_gradient (leds,76,CHSV(0,255,255),76+rise,CHSV(pBat,255,255),SHORTEST_HUES);
+  for (int i = 0; i < 5; i++){leds[72+i]=CHSV(160,255,255); leds[176+i]=CHSV(160,255,255);}
+  }
+
+}
 
 
 void ani_main(){
-  if(aniList[currentAni].active){ aniList[currentAni].functCall(); }
-  else if(!aniList[currentAni].active && aniNextAuto){nextAni();}
-//  switch(currentAni){
-//    case 0: plasma(); break;
-//    case 1: waveRings(); break;
-//    case 2: rainbow(); break;
-//    case 3: cylon(); break; // 
-//    case 4: bpm(); break;//
-//    case 5: juggle(); break;//
-//    default: break;
-//  }
-  if(aniNextAuto){ EVERY_N_SECONDS(SECONDS_PER_ANIMATION){ nextAni();} }
+  if(aniList[cfg.ledAni].active){ aniList[cfg.ledAni].functCall(); }
+  else if(!aniList[cfg.ledAni].active && aniNextAuto){nextAni();}
+  if(aniNextAuto){ EVERY_N_SECONDS(aniTimeS){ nextAni();} }
 }
-//typedef void (*animations[])();
- // animations ani = { plasma, waveRings, rainbow, cylon, bpm, juggle };
-
-  
-
 
 
 //create virtual area to spread the roll angle offset
@@ -31,22 +38,46 @@ const uint8_t vWidth = 13; // virtual led strip length
 const uint8_t vHeight = 138; // area for roll offset exoansion  x=6   +/- 6px
 
 void plasma(){
-    float plasmaSpeed = 0.25; //0.1 to 1
-    uint8_t plasmaZoom = 30; // 20 to 80
+    static int minNoise = 0;
+    static int maxNoise = 0;
+    float plasmaSpeed = 25;//0.25; //0.1 to 1
+    int plasmaZoom = 2800; // 20 to 80
     ledVector[1] = 1;
     ledVector[0] = 0;
     for( int i = 0; i < (NUM_VLEDS); i++ ){ virt2realLed(i, (vHeight-1)/2, i ); }
     
 
-    uint16_t ms = plasmaSpeed * millis(); 
+    uint32_t ms = plasmaSpeed * millis(); 
     for( int i = 0; i < (NUM_LEDS); i++ ){
       int x = ledPixelPos[i][0];
       int y = ledPixelPos[i][1];
-      byte noises =  inoise8 (y * plasmaZoom, x * plasmaZoom, ms);
+      int noiseVal = inoise16_raw(y * plasmaZoom, x * plasmaZoom, ms);
+      if(noiseVal > maxNoise){maxNoise = noiseVal; }
+      else if(noiseVal < minNoise){minNoise = noiseVal; }
+      byte noises =  map(noiseVal,minNoise,maxNoise,8,246);
+      //uint8_t bright = getEqBright(noises); // if(fftMode) recive a dimmed brightness for each color (mapped to eq band)... else if(!fftMode) recive 255 brightness
       leds[i] = getCurrentPalColor(noises, 255, 255);
     }
 }
-
+//input color  and  get the a brightness for this color scaled by eq peak values
+uint8_t getEqBright(uint8_t color){ // hue-range per band 32
+  
+if(fftMode && millis() > eqStart+800){ // wait for the first fft output blast to fade 
+  uint8_t colorBand = color / 32;
+  uint8_t posBand = color % 32;
+  int8_t rangeMin = posBand < 16 ? colorBand-1 : colorBand ;
+  int8_t rangeMax = posBand < 16 ? colorBand : colorBand+1 ;
+  if (posBand >= 16){posBand -=16;}
+  if(rangeMin == -1 ){ rangeMin = 7;} // wrap eq peak around
+  else if(rangeMax == 8){rangeMax = 0;} // wrap eq peak around
+  // smooth transitions between two eq band peaks
+  uint16_t interpolated = map(posBand,0,15, EQ[rangeMin].peak,EQ[rangeMax].peak); 
+  // map the interpolated EQ peak  between the min /map peak within the last 3 sec
+  uint8_t new_bright = scale8_video( 255, 255 - map(interpolated,eqRange.ampMin,eqRange.ampMax,0, eqDimMax));
+  return new_bright;
+  }
+  else{ return 255;}
+}
 
 pos_f wavePosB = {6.0,68.5};
 pos_f wavePosA = {6.0,68.5};
@@ -103,61 +134,6 @@ void waveRings(){
     }
 }
 
-/*
-
-void colorWaves() {
-  
-  static uint16_t sPseudotime = 0;
-  static uint16_t sLastMillis = 0;
-  static uint16_t sHue16 = 0;
- 
-  uint8_t sat8 = beatsin88( 87, 220, 250);
-  uint8_t brightdepth = beatsin88( 341, 96, 224);
-  uint16_t brightnessthetainc16 = beatsin88( 203, (25 * 256), (40 * 256));
-  uint8_t msmultiplier = beatsin88(147, 23, 60);
-
-  uint16_t hue16 = sHue16;//gHue * 256;
-  uint16_t hueinc16 = beatsin88(113, 300, 1500);
-  
-  uint16_t ms = millis();
-  uint16_t deltams = ms - sLastMillis ;
-  sLastMillis  = ms;
-  sPseudotime += deltams * msmultiplier;
-  sHue16 += deltams * beatsin88( 400, 5,9);
-  uint16_t brightnesstheta16 = sPseudotime;
-  
-  for( uint16_t i = 0 ; i < NUM_VLEDS; i++) {
-    hue16 += hueinc16;
-    uint8_t hue8 = hue16 / 256;
-    uint16_t h16_128 = hue16 >> 7;
-    if( h16_128 & 0x100) {
-      hue8 = 255 - (h16_128 >> 1);
-    } else {
-      hue8 = h16_128 >> 1;
-    }
-
-    brightnesstheta16  += brightnessthetainc16;
-    uint16_t b16 = sin16( brightnesstheta16  ) + 32768;
-
-    uint16_t bri16 = (uint32_t)((uint32_t)b16 * (uint32_t)b16) / 65536;
-    uint8_t bri8 = (uint32_t)(((uint32_t)bri16) * brightdepth) / 65536;
-    bri8 += (255 - brightdepth);
-    
-    uint8_t index = hue8;
-    //index = triwave8( index);
-    index = scale8( index, 240);
-
-    CRGB newcolor = ColorFromPalette( currentPal, index, bri8);
-
-    uint16_t pixelnumber = i;
-    pixelnumber = (NUM_VLEDS-1) - pixelnumber;
-    int16_t realIdx = getRealFirstIdx(pixelnumber);
-    if(realIdx >= 0){nblend( leds[realIdx], newcolor, 128);}
-  }
-  spreadRealFirstIdx();
-  mirrorStick(0);
-}
-*/
 void rainbow() { fill_rainbow(leds, NUM_LEDS, gHue, 7); }// FastLED's built-in rainbow generator.
 
 void vAreaSetLedXY(){
@@ -451,4 +427,61 @@ void DrawOneFrame( byte startHue8, int8_t yHueDelta8, int8_t xHueDelta8)
  // copyLEDs();  
 }
 
+*/
+
+
+/*
+
+void colorWaves() {
+  
+  static uint16_t sPseudotime = 0;
+  static uint16_t sLastMillis = 0;
+  static uint16_t sHue16 = 0;
+ 
+  uint8_t sat8 = beatsin88( 87, 220, 250);
+  uint8_t brightdepth = beatsin88( 341, 96, 224);
+  uint16_t brightnessthetainc16 = beatsin88( 203, (25 * 256), (40 * 256));
+  uint8_t msmultiplier = beatsin88(147, 23, 60);
+
+  uint16_t hue16 = sHue16;//gHue * 256;
+  uint16_t hueinc16 = beatsin88(113, 300, 1500);
+  
+  uint16_t ms = millis();
+  uint16_t deltams = ms - sLastMillis ;
+  sLastMillis  = ms;
+  sPseudotime += deltams * msmultiplier;
+  sHue16 += deltams * beatsin88( 400, 5,9);
+  uint16_t brightnesstheta16 = sPseudotime;
+  
+  for( uint16_t i = 0 ; i < NUM_VLEDS; i++) {
+    hue16 += hueinc16;
+    uint8_t hue8 = hue16 / 256;
+    uint16_t h16_128 = hue16 >> 7;
+    if( h16_128 & 0x100) {
+      hue8 = 255 - (h16_128 >> 1);
+    } else {
+      hue8 = h16_128 >> 1;
+    }
+
+    brightnesstheta16  += brightnessthetainc16;
+    uint16_t b16 = sin16( brightnesstheta16  ) + 32768;
+
+    uint16_t bri16 = (uint32_t)((uint32_t)b16 * (uint32_t)b16) / 65536;
+    uint8_t bri8 = (uint32_t)(((uint32_t)bri16) * brightdepth) / 65536;
+    bri8 += (255 - brightdepth);
+    
+    uint8_t index = hue8;
+    //index = triwave8( index);
+    index = scale8( index, 240);
+
+    CRGB newcolor = ColorFromPalette( currentPal, index, bri8);
+
+    uint16_t pixelnumber = i;
+    pixelnumber = (NUM_VLEDS-1) - pixelnumber;
+    int16_t realIdx = getRealFirstIdx(pixelnumber);
+    if(realIdx >= 0){nblend( leds[realIdx], newcolor, 128);}
+  }
+  spreadRealFirstIdx();
+  mirrorStick(0);
+}
 */

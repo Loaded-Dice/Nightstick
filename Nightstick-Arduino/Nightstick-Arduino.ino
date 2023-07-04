@@ -53,11 +53,8 @@
   - Arduino_LSM6DS3 (Inertial measurement unit library Arduino_LSM6DS3 v1.0.2)
         https://www.arduino.cc/reference/en/libraries/arduino_lsm6ds3/
 
-  - // [Replaced by Madgwick] MahonyAHRS (Version 1.1)  implementation of MahonyAHRS algorithm to smooth and improve the gyro and accleration readings
-    // [Replaced by Madgwick] https://github.com/PaulStoffregen/MahonyAHRS
-    
-  - Madgwick (version 1.2.0)
-    https://github.com/arduino-libraries/MadgwickAHRS
+  - SensorFusion (Version 1.0.6) - Mahony and Madgwick algorithms.
+        https://github.com/aster94/SensorFusion
     
   - arduinoFFT (Version 1.6)
     https://github.com/kosme/arduinoFFT
@@ -80,7 +77,7 @@ To do:
 
   New Featues to implement:
     
-    - PDM Microphone --> soundlevel detection or FFT + overlay animations
+    - Use EQ  overlay animations
     - make compatible android app and / or lilygo smartwatch code to communicate via BLE with the stick, change settings, lookup battery status....
   
   Improvements & next steps:
@@ -91,13 +88,10 @@ To do:
     - config struct should control controls main stick states (switch variables like  BRIGHTNESS to cfg.bright and so on)
     - Store contents of the Readme.txt file in progmem and write it to sd card if the file is not present or file size is different
     - when SD card is empty create folder structre and Files: MAIN_PATH, MAIN_PATH/BMPs, MAIN_PATH/System, MAIN_PATH/readme.txt, MAIN_PATH/config.csv (config done!) ...
-    - implement the use of colorpalettes from FastLed
-    - implement battery low animation 
     - in Led2Pixel_static() uint16_t ledPixelPos[NUM_LEDS][n]; where n=0 --> bmp x pos n=1 --> bmp y pos for each led
       currently ledPixelPos is rounded to thethe next whole pixel - instead of rounding directly multiply x&y floats by 10 an then rounding the value
       use the extra precision to implement a blending function to blend with the surrounding pixels (smoother transition)
     - Don't output data to stick like a simple line of LEDs. Introduce a virtual_NUM_LEDS (use the 4 led strips in the flower head as one)--> Look at LEDs mirrorStick()  
-    - load and test the trail bitmaps ( 1 degree per pixel )
     - implemet deep sleep for µC or idle animation when not played (make this selectable in config )
     - indicate button push by single leds in the 1st ring light up
     - create ring LED & mini strip roll angle offset detection sequence by lighting up first ring LED of each ring and first LED of each mini LED strip
@@ -105,7 +99,6 @@ To do:
       one button press sould store the roll angle value and ne next led should light up. Calibration values sould get stored in the config file
       and loaded when the stick boots
     - More palettes, preview / palette knife?
-    - palette fade activates accidenatlly after one loop ... function array problem?
     - Animation idea - charge juggle animation within  the flowers before shooting  to the other side and stay a moment inside the other side to charge up
       maybe simulaniously shoot and intersect in the middle 
     - cylon faster & brighter
@@ -185,14 +178,14 @@ To do:
 */
 
 #include "Nightstick.h"
-#include "Palettes.h"
+
 //--------------------------------------------------------------------------------------------------------------------- Setup
 
 
 void setup(){ 
   //do not use Serial.print() or Serial.println() instead use msg() or msgln() to implement a debug on/off message mode later
   Serial.begin(115200);
-  if(DEBUG){while (!Serial.available()) { yield();}}
+ // if(DEBUG){while (!Serial.available()) { if(Serial){EVERY_N_MILLIS(1000){Serial.println("Press any  key");}}yield();}}
 //  Serial.print("TEST");
   setup_System(); // begin with system setup to enable error blink codes with the internal board leds
   setup_SD();     // boot sequence stops when SD card is removed (safety reason)
@@ -202,9 +195,10 @@ void setup(){
   start_FILTER_IMU();
   setup_BLE_COM();
   setup_LEDs();
+ // cfg.ledMode = LED_BATT;
   //startBLE(); // debugging voltage readings & Vref
   //start_FFT();//
-  strip.setBrightness(25);
+ // strip.setBrightness(25);
   //removeBmp("/Nightstick/BMPs/trails/elements/electric_tangle_wave.bmp");
     
 //   ledMode = LED_TRAIL ; // LED_OFF;// LED_TEST; //
@@ -214,7 +208,7 @@ void setup(){
 }
 // not good enough : colorWaves
 
-
+// function pointer, name, active state
 static const animations aniList[] = {
   {plasma,    "plasma",   true},
   {waveRings, "waveRings",true},
@@ -228,22 +222,53 @@ const uint8_t numAnis = SIZE(aniList); //(sizeof(aniList) / sizeof((aniList)[0])
 
 
 void loop(){ // all main functions have timining structures integrated
-  
+  timeStart(); 
   main_FILTER_IMU();
   main_LEDs();
-//  main_BLE_COM();
-//  main_Batt();
-//  main_Inputs();
- // FFT_main();
+  timeStop();
+  main_BLE_COM(); 
+  main_Batt();
+  main_Inputs();
+  
+  debugPrint(1000);
+  //FFT_main(); 
+//if(paletteNextAuto){Serial.print(millis()); Serial.print("\t paletteNextAuto on - ani: ");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
+//if(paletteFadeAuto){Serial.print(millis()); Serial.print("\t paletteFadeAuto on");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
+//if(paletteFadeAuto && paletteNextAuto){Serial.print("both on - long delay"); Serial.println(); delay(10000);}
 
+}
+
+
+
+
+unsigned long  tempTimer = 0;
+float timeResult = 0.0;
+
+void timeStart(){
+  tempTimer = micros();
  
-if(paletteNextAuto){Serial.print(millis()); Serial.print("\t paletteNextAuto on - ani: ");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
-if(paletteFadeAuto){Serial.print(millis()); Serial.print("\t paletteFadeAuto on");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
-if(paletteFadeAuto && paletteNextAuto){Serial.print("both on - long delay"); Serial.println(); delay(10000);}
- 
-//  EVERY_N_MILLIS(2380){ 
-//      for( uint16_t i = 0; i < NUM_LEDS; i++ ){  Serial.print(ledPixelPos[i][0]); Serial.print('\t');} Serial.println();  
-//      for( uint16_t i = 0; i < NUM_LEDS; i++ ){  Serial.print(ledPixelPos[i][1]); Serial.print('\t');} Serial.println(); 
-//      Serial.println();Serial.println(); 
-//  }
+}
+void timeStop(){
+  tempTimer = micros() - tempTimer;
+  timeResult = ((float)tempTimer / 1000.0);
+}
+void debugPrint(int delayMS){
+  static unsigned long debugTimer;
+  if(millis() > debugTimer + delayMS){
+//  debugBuff[0]='\0'; // clear buffer
+//  strcpy(debugBuff,f2char(yaw));
+//  strcat(debugBuff,"\t");
+//  strcat(debugBuff,f2char(pitch));
+//  strcat(debugBuff,"\t");
+//  strcat(debugBuff,f2char(roll));
+//  strcat(debugBuff,"\t");
+  Serial.print(yaw);
+  Serial.print('\t');
+  Serial.print(pitch);
+  Serial.print('\t');
+  Serial.print(roll);
+  Serial.print('\t');
+  Serial.println(timeResult);
+  debugTimer = millis();
+  }
 }

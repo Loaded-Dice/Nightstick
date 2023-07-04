@@ -116,11 +116,8 @@ void cArrToLower(char* str) { cArrChangeCase(str,false);}
 void cArrToUpper(char* str) { cArrChangeCase(str,true); }
 bool cArrStartsWith(char* str, char chk){return (str[0] == chk);}
 bool cArrEndsWith(char* str, char chk){return (str[strlen(str)-1] == chk);}
-int16_t cArrIndexOf(char* str, char chk){ for(int i = 0; i < strlen(str); i++){
-  if(str[i]==chk){return i;}
-}
-  return -1;
-}
+int16_t cArrIndexOf(char* str, char chk){ for(int i = 0; i < strlen(str); i++){if(str[i]==chk){return i;}} return -1;}
+
 void cArrTrim(char* str){
  while( cArrEndsWith(str, ' ') || cArrEndsWith(str, '\t') || cArrStartsWith(str, ' ') || cArrStartsWith(str, '\t')){
   if( cArrEndsWith(str, ' ') || cArrEndsWith(str, '\t')){cArrTrimRight(str);}

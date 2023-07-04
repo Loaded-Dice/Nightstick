@@ -25,9 +25,10 @@ void main_BLE_COM(){ // no timing function to read message asap
      readBLE();
      bleMsgHandler();
    }
-   checkForSerial();
-   serialHandler();
+ //  checkForSerial();
+ //  serialHandler();
 }
+
 
 void startBLE(void){
 
@@ -42,6 +43,7 @@ void startBLE(void){
   Bluefruit.setConnLedInterval(400); 
   msgln("BLE on");
   bleMode = BLE_ADV;
+  if(cfg.ledMode != LED_OFF){bakLedMode = cfg.ledMode; cfg.ledMode = LED_BLE;}
 }
 
 
@@ -52,6 +54,7 @@ void stopBLE(){
   msgln("BLE Off");
   bleMode = BLE_OFF;
   setBoardLed('B',OFF);
+  if(bakLedMode != LED_OFF){cfg.ledMode = bakLedMode; bakLedMode = LED_OFF;}
 }
 
 void disconnectBLE(){
@@ -135,23 +138,77 @@ void bleMsgHandler(){
 //    strcat(comBufOut,"  ");
 //    strcat(comBufOut,i2char(btnVal));
     if(strcmp(comBufIn, "#HAND")  == 0){sendBLE("#SHAKE\n");}
-    else if(strcmp(comBufIn, "VBAT_EN_H")  == 0){digitalWrite(VBAT_ENABLE,HIGH);}
-    else if(strcmp(comBufIn, "VBAT_EN_L")  == 0){digitalWrite(VBAT_ENABLE,LOW);}
-    else if(strcmp(comBufIn, "VBAT_READ")  == 0){sendBLE(comBufOut);} 
-    else if(strcmp(comBufIn, "REF_INTERN") == 0){analogReference(AR_INTERNAL);}
-    else if(strcmp(comBufIn, "REF_1V2")    == 0){analogReference(AR_INTERNAL_1_2); }
-    else if(strcmp(comBufIn, "REF_1V8")    == 0){analogReference(AR_INTERNAL_1_8);}
-    else if(strcmp(comBufIn, "REF_2V4")    == 0){analogReference(AR_INTERNAL_2_4); }
-    else if(strcmp(comBufIn, "REF_3V0")    == 0){analogReference(AR_INTERNAL_3_0);}
-    else if(strcmp(comBufIn, "DEPTH10")    == 0){analogReadResolution(10);}
-    else if(strcmp(comBufIn, "DEPTH12")    == 0){analogReadResolution(12);}    
+    else if(strcmp(comBufIn, "MODE+")   == 0){switchLedMode(1);}     
+    else if(strcmp(comBufIn, "MODE-")   == 0){switchLedMode(-1);}
+    else if(strcmp(comBufIn, "MODE?")   == 0){ sendBLE(i2char(cfg.ledMode)); sendBLE(","); sendBLE(modeNames[cfg.ledMode]); sendBLE("\n");} 
+    else if(strcmp(comBufIn, "PAL+")    == 0){nextPalette();} 
+    else if(strcmp(comBufIn, "PAL-")    == 0){lastPalette();} 
+    else if(strcmp(comBufIn, "PAL?")    == 0){sendBLE(i2char(cfg.palette));sendBLE(","); sendBLE(paletteNames[cfg.palette]); sendBLE("\n");} 
+    else if(strcmp(comBufIn, "ANI+")    == 0){nextAni();} 
+    else if(strcmp(comBufIn, "ANI-")    == 0){lastAni();}
+    else if(strcmp(comBufIn, "ANI?")    == 0){ sendBLE(i2char(cfg.ledAni));sendBLE(","); sendBLE(aniList[cfg.ledAni].aniName); sendBLE("\n");}
+    else if(strcmp(comBufIn, "BRIGHT+") == 0){changeBright(1); }
+    else if(strcmp(comBufIn, "BRIGHT-") == 0){changeBright(-1);}
+    else if(strcmp(comBufIn, "BRIGHT?") == 0){ sendBLE(i2char(cfg.bright)); sendBLE("\n");}
+    else if(strcmp(comBufIn, "BMP+")    == 0){ledsChangeBmp(1);}
+    else if(strcmp(comBufIn, "BMP-")    == 0){ledsChangeBmp(-1);}
+    else if(strcmp(comBufIn, "BMP?")    == 0){sendBLE(getBmpName()); sendBLE("\n");}
+    else if(strcmp(comBufIn, "FLD+")    == 0){ledsChangeFld(1);}
+    else if(strcmp(comBufIn, "FLD-")    == 0){ledsChangeFld(-1);}    
+    else if(strcmp(comBufIn, "FLD?")    == 0){sendBLE(getFldName()); sendBLE("\n");}    // cfg.trailsBmp   cfg.staticBmp  i2char(cfg.ledAni) i2char(cfg.palette) i2char(cfg.ledMode)
+    else if(strcmp(comBufIn, "BATT?")   == 0){sendBLE(i2char(pBat)); sendBLE("\n");}
+    else if(strncmp (comBufIn, "STATIC,", 7) == 0 ){ strcpy(comBufIn, &comBufIn[7]); setBmp(FULLPATH_STATIC,comBufIn);}
+    else if(strncmp (comBufIn, "TRAIL,", 6)  == 0 ){ strcpy(comBufIn, &comBufIn[6]); setBmp(FULLPATH_TRAILS,comBufIn);}
+  
 
-    //else if(strcmp(comBufIn, "TESTHALLO")    == 0){test=!test; sendBLE(test ? "Test on" : "Test off");}    
+  
     else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-\n"); }
     comBufIn[0]='\0';
     newBleData = false;
   }
 }
+void setBmp(char * constPath, char * fldFile){
+
+  folderBuff[0] = '\0'; fileBuff[0] = '\0'; 
+  strncpy(folderBuff,fldFile,cArrIndexOf(fldFile,','));
+  strcpy(fileBuff,&fldFile[cArrIndexOf(fldFile,',')+1]);
+
+  if(chkPathValid(constPath,folderBuff,fileBuff)){
+       if(strcmp (constPath, FULLPATH_STATIC)  == 0 ){
+        cfg.staticFolder[0] = '\0'; cfg.staticBmp[0] = '\0';  
+        cfg.ledMode = LED_STATIC; 
+        strcpy(cfg.staticFolder,folderBuff); 
+        strcpy(cfg.staticBmp,fileBuff);
+        }
+       else if(strcmp (constPath, FULLPATH_TRAILS)  == 0 ){
+        cfg.trailsFolder[0] = '\0'; cfg.trailsBmp[0] = '\0';  
+        cfg.ledMode = LED_TRAIL; 
+        strcpy(cfg.trailsFolder,folderBuff); 
+        strcpy(cfg.trailsBmp,fileBuff);
+        }
+        BMPtoRAM(pathBuff);
+  }
+  else{sendBLE("Error!\n");
+  }
+}
+
+bool chkPathValid(char * constPath, char * fld, char * file){
+  pathBuff[0] = '\0';
+  strcpy(pathBuff,constPath); strcat(pathBuff,"/");strcat(pathBuff,fld);strcat(pathBuff,"/");strcat(pathBuff,file);
+  return sd.exists(pathBuff);
+}
+
+const char * getFldName(){
+  if(cfg.ledMode == LED_STATIC){return cfg.staticFolder;}
+  else if(cfg.ledMode == LED_TRAIL){return cfg.trailsFolder;}
+  return "-";
+}
+const char * getBmpName(){
+  if(cfg.ledMode == LED_STATIC){return cfg.staticBmp;}
+  else if(cfg.ledMode == LED_TRAIL){return cfg.trailsBmp;}
+  return "-";
+}
+
 
 void checkForSerial(){ // ------------------------- SERIAL read  115200 baud 
     if (Serial && !newSerialData && Serial.available() > 0) {
@@ -187,12 +244,12 @@ void serialHandler(){
     else if(strncmp (comBufIn, "BLINK,", 6)     == 0 ){
       uint16_t cArrLen = strlen(comBufIn); 
       strcpy(comBufIn, &comBufIn[6]); 
-      comBufIn[cArrLen-6] = '\0'; 
+      //comBufIn[cArrLen-6] = '\0'; 
       if(isInt(comBufIn)){msgln(comBufIn);Bluefruit.setConnLedInterval(convInt);}
       }
       else if(strncmp (comBufIn, "LED", 3)  == 0 ){setBoardLed(comBufIn[3], comBufIn[4]);} // LEDR1 for Red channel high
     else if(strcmp(comBufIn, "ROLL")       == 0){}
-    else if(isInt(comBufIn) && convInt < NUM_LEDS && convInt >= 0){ledMode = LED_TEST; ledsClear(); leds[convInt] = CRGB::Red; ledsShow(); comBufIn[0] = '\0';} 
+    else if(isInt(comBufIn) && convInt < NUM_LEDS && convInt >= 0){cfg.ledMode = LED_TEST; ledsClear(); leds[convInt] = CRGB::Red; ledsShow(); comBufIn[0] = '\0';} 
     else{msg("UNKNOWN CMD:  ");msg(comBufIn); msgln("  \n");}
 
     newSerialData=false;

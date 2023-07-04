@@ -48,60 +48,90 @@ void printBmpHeader(){
 }
 
 void ledsChangeBmp(int8_t loadDirection){ // LAST -1 , NEXT 1
-  
-  if(ledMode == LED_TRAIL ){
-    strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS, cfg.trailsFolder, true) ,cfg.trailsBmp, loadDirection)); 
-    Serial.println(charBuff);
-    BMPtoRAM(toCharBuff(pathBuff,cfg.trailsBmp,true));
+  if(cfg.ledMode == LED_TRAIL ){
+    nextElement2Buff(FULLPATH_TRAILS,  cfg.trailsFolder, cfg.trailsBmp , loadDirection);
+    strcpy(cfg.trailsBmp, fileBuff);
+    Serial.print("new bmp:\t");Serial.println(cfg.trailsBmp); 
+    BMPtoRAM(toCharBuff(pathBuff,cfg.trailsBmp,true)); Serial.println(charBuff);
     }
-  else if(ledMode == LED_STATIC){
-    strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC, cfg.staticFolder, true) ,cfg.staticBmp, loadDirection)); 
-    Serial.println(charBuff);
-    BMPtoRAM(toCharBuff(pathBuff,cfg.staticBmp,true));
-    }
-  // combine parent folder (still at pathBuff) with new bmp 
-  
+  else if(cfg.ledMode == LED_STATIC){
+    nextElement2Buff(FULLPATH_STATIC,  cfg.staticFolder, cfg.staticBmp , loadDirection);
+    strcpy(cfg.staticBmp, fileBuff);
+    Serial.print("new bmp:\t");Serial.println(cfg.staticBmp); 
+    BMPtoRAM(toCharBuff(pathBuff,cfg.staticBmp,true)); Serial.println(charBuff);
+    }  
   writeCfg();
 }
 
 void ledsChangeFld(int8_t loadDirection){
-       if(ledMode == LED_TRAIL ){
-        strcpy(cfg.trailsFolder, getOtherFld(FULLPATH_TRAILS,  cfg.trailsFolder , loadDirection));                  // load next/last folder
-        strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true) ,cfg.trailsBmp, 0)); // then set new bmp to index 0
+       if(cfg.ledMode == LED_TRAIL ){
+        nextElement2Buff(FULLPATH_TRAILS,  cfg.trailsFolder, "" , loadDirection);
+        strcpy(cfg.trailsFolder,folderBuff);
+        strcpy(cfg.trailsBmp,fileBuff);
         BMPtoRAM(toCharBuff(pathBuff,cfg.trailsBmp,true));
        }
-  else if(ledMode == LED_STATIC){
-        strcpy(cfg.staticFolder, getOtherFld(FULLPATH_STATIC,  cfg.staticFolder , loadDirection));
-        strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC, cfg.staticFolder, true) ,cfg.staticBmp, 0));
+  else if(cfg.ledMode == LED_STATIC){
+        nextElement2Buff(FULLPATH_STATIC,  cfg.staticFolder, "" , loadDirection);
+        strcpy(cfg.staticFolder,folderBuff);
+        strcpy(cfg.staticBmp,fileBuff);
         BMPtoRAM(toCharBuff(pathBuff,cfg.staticBmp,true));
         }
-   // combine parent folder (still at pathBuff) with new bmp
- Serial.println(charBuff);
+ Serial.print("new folder: ");Serial.print(folderBuff); Serial.print("\t new bmp: ");Serial.println(fileBuff);
   writeCfg();
+}
+//nextElement2Buff(FULLPATH_CONST,currentFolder,currentBmp ,searchDirection = -1 or 0 or 1)
+// if currentBmp is "" other in searchDirection folder gets selected
+// if searchDirection is 0 first valid file/folder is selected
+//fileBuff holds the selected folder
+//fileBuff  holds the selected bitmap
+//pathbuff holds the fullpath/selected_folder
+
+void nextElement2Buff(char* cArrFullPath, char* cArrFld, char* cArrBmp, int8_t searchDir){ // set cArrBmp to "" to change folder
+  fileBuff[0]='\0';  
+  folderBuff[0]='\0'; 
+  if(strlen(cArrBmp) == 0){
+  strcpy(folderBuff, getOtherFld(cArrFullPath, cArrFld , searchDir));  
+  strcpy(fileBuff,  getOtherBmp(toPathBuff(cArrFullPath, folderBuff, true) ,cArrBmp, 0));
+  } // 1. getOtherFld dann get 
+  else{
+    strcpy(fileBuff, getOtherBmp(toPathBuff(cArrFullPath, cArrFld, true) ,cArrBmp, searchDir)); 
+  }
 }
 //---------------------------------------------------------------------------------------------------------
 //   checking config file "last folders" and "last bmps" for existance and otherwise assign first found (at boot up)
 // --------------------------------------------------------------------------------------------------------
 void chkBmpsAndFolders(){
 
-bool rewriteCfg = false;
+  bool rewriteCfg = false;
   if(!validPath(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true),  cfg.trailsFolder)){
-    strcpy(cfg.trailsFolder, getOtherFld(FULLPATH_TRAILS,  cfg.trailsFolder , 0));
+    nextElement2Buff(FULLPATH_TRAILS,  cfg.trailsFolder , "" , 0);
+    strcpy(cfg.trailsFolder,folderBuff);
     rewriteCfg = true;
+    msgln("trails folder is invalid!");
     }
+  else{ msgln("trails folder is valid!");}
   if(!validPath(toCharBuff(pathBuff, cfg.trailsBmp, true), cfg.trailsBmp)){
-    strcpy(cfg.trailsBmp, getOtherBmp(toPathBuff(FULLPATH_TRAILS,  cfg.trailsFolder, true) ,cfg.trailsBmp,0));
+    nextElement2Buff(FULLPATH_TRAILS,  cfg.trailsFolder , cfg.trailsBmp , 0);
+    strcpy(cfg.trailsBmp, fileBuff);
     rewriteCfg = true;
+    msgln("trails bmp is invalid!");
     }
+  else{ msgln("trails bmp is valid!");}
   if(!validPath(toPathBuff(FULLPATH_STATIC,  cfg.staticFolder, true),  cfg.staticFolder)){
-    strcpy(cfg.staticFolder, getOtherFld(FULLPATH_STATIC,  cfg.staticFolder , 0));
+    nextElement2Buff(FULLPATH_STATIC,  cfg.staticFolder , "" , 0);
+    strcpy(cfg.staticFolder, folderBuff);
     rewriteCfg = true;
+    msgln("static folder is invalid!");
     }
+  else{ msgln("static folder is valid!");}
   if(!validPath(toCharBuff(pathBuff, cfg.staticBmp, true), cfg.staticBmp)){
-    strcpy(cfg.staticBmp, getOtherBmp(toPathBuff(FULLPATH_STATIC ,cfg.staticFolder,true),cfg.staticBmp,0));
+    nextElement2Buff(FULLPATH_STATIC,  cfg.staticFolder , cfg.staticBmp , 0);
+    strcpy(cfg.staticBmp,  fileBuff);
     rewriteCfg = true;
+    msgln("static bmp is invalid!");
     }
-  if(rewriteCfg){writeCfg();}
+  else{ msgln("static bmp is valid!");}
+  if(rewriteCfg){writeCfg(); msgln("rewriting cfg because of invalid file / folder");}
 }
 
 char * toCharBuff(char* cArr1, char* cArr2, bool chkSlash){return toBuff(cArr1,cArr2,charBuff,chkSlash);}
@@ -216,6 +246,31 @@ char * getFileNameByIdxCount(char * fldPath, uint16_t fileCountIdx, uint8_t file
   return charBuff;
 }
 
+void updateRamBmp(){
+pathBuff[0]='\0'; // clear buffer
+
+if(cfg.ledMode == LED_TRAIL){
+  strcpy(pathBuff,FULLPATH_TRAILS);
+  strcat(pathBuff,"/");
+  strcat(pathBuff,cfg.trailsFolder);
+  strcat(pathBuff,"/");
+  strcat(pathBuff,cfg.trailsBmp);
+  BMPtoRAM(pathBuff); 
+  }
+  else if(cfg.ledMode == LED_STATIC){
+  
+  strcpy(pathBuff,FULLPATH_STATIC);
+  strcat(pathBuff,"/");
+  strcat(pathBuff,cfg.staticFolder);
+  strcat(pathBuff,"/");
+  strcat(pathBuff,cfg.staticBmp);
+  BMPtoRAM(pathBuff); 
+  }
+ Serial.print("update bmp in ram to: ");
+  Serial.println(pathBuff);
+  
+}
+
 void BMPtoRAM(char* bmpFilePath) {
   
   readBmpHeader(bmpFilePath); // check the header is bmp file is ok (image depth , size , etc.) 
@@ -259,7 +314,7 @@ void readBmpHeader(char* bmpFilePath) { //store full bmp path in generic charBuf
   bmp.flip = true; // RESET BMP is stored bottom-to-top
 
   
-  if (!(sd.exists(bmpFilePath) && bmp.file.open(bmpFilePath, FILE_READ))){return;} // maybe throw an error? 
+  if (!(sd.exists(bmpFilePath) && bmp.file.open(bmpFilePath, FILE_READ))){ Serial.println("ERROR: could'nt open BMP file");return;} // maybe throw an error? 
   if (read16(bmp.file) == 0x4D42) { // BMP signature - read16 and read32 are functions below
 
     bmp.fileSize = read32(bmp.file); // reading the file size

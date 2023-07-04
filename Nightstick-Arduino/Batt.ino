@@ -20,10 +20,11 @@ void readBatt(){
     float f_tempBat = ((float)tempBat / (float)nMeasBat);
     rawBat = f_tempBat;
      vBat = (float)vBatLookUp(rawBat) / 100; // use lookup table to convert raw value to voltage
-     if(vBat <3.35){pBat = 0;}
-     else if(vBat >= 4.17){pBat = 100;}
-     else{pBat = map(vBat,3.35,4.17,0,100);}
-     
+     if(vBat > 0.1){
+         if(vBat <3.55){pBat = 0;}
+         else if(vBat >= 4.17){pBat = 100;}
+         else{pBat = map((int)(vBat*100),355,417,0,20);pBat*=5;}
+     }
      if(bleMode != BLE_OFF){blebas.write(pBat);}
      tempBat = 0;
      nMeasBat = 0;
