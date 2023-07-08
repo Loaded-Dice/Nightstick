@@ -5,6 +5,14 @@ no setup_X() or main_X()
 // hue 0 =red, 32 = orange 64 = yellow, 96 = green
 //fill_gradient (T *targetArray, uint16_t startpos, CHSV startcolor, uint16_t endpos, CHSV endcolor, TGradientDirectionCode directionCode=SHORTEST_HUES)
 //pitch
+
+
+void bleAni(){
+
+  cfg.ledMode = bakLedMode; // return to backup LedMode when animation is done
+  bakLedMode = LED_OFF;
+}
+
 int8_t battAnz = 0;
 void ledBatt(){
   static bool toggle = true;

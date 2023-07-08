@@ -300,8 +300,23 @@ BLEBas  blebas;  // battery service
 #define BLE_OFF           0   // BLE OFF
 #define BLE_ADV           1   // BLE Service Advertising
 #define BLE_CONN          2   // Peer connected
+// Own online generated UUID for the Nightstick
+
+//BLEService nightstickService("68158000-6355-4571-8642-BBD34048E5A5"); // online generated SERVICE UUID for the Nightstick
+////BLEService nightstickService(BLEUuid(0x1801));
+//BLECharacteristic nightstickAuth("68158001-6355-4571-8642-BBD34048E5A5");
+//BLECharacteristic nightstickAuth(BLEUuid(0x1008));
+////UUID16_CHR_ILLUMINANCE
+//UUID16_CHR_FIXED_STRING_16
+//UUID16_CHR_FIXED_STRING_24
+//UUID16_CHR_FIXED_STRING_36
+//UUID16_CHR_FIXED_STRING_8
+//UUID16_CHR_UNSPECIFIED
+//UUID16_CHR_OTS_OBJECT_NAME
+//UUID16_CHR_OTS_OBJECT_TYPE
 uint8_t bleMode = BLE_OFF;
 uint8_t bakLedMode = LED_OFF; // backup led mode to return after BLE animation
+
 //---==={VARIABLES - BLE_COM}===---//
 char comBufIn[BLE_BUFSIZE];
 char comBufOut[BLE_BUFSIZE];

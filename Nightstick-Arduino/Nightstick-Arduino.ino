@@ -195,6 +195,7 @@ void setup(){
   start_FILTER_IMU();
   setup_BLE_COM();
   setup_LEDs();
+  startBLE(); // TEST
  // cfg.ledMode = LED_BATT;
   //startBLE(); // debugging voltage readings & Vref
   //start_FFT();//
@@ -230,7 +231,7 @@ void loop(){ // all main functions have timining structures integrated
   main_Batt();
   main_Inputs();
   
-  debugPrint(1000);
+  //debugPrint(1000);
   //FFT_main(); 
 //if(paletteNextAuto){Serial.print(millis()); Serial.print("\t paletteNextAuto on - ani: ");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}
 //if(paletteFadeAuto){Serial.print(millis()); Serial.print("\t paletteFadeAuto on");Serial.print( currentAni);Serial.println(aniList[currentAni].aniName);}

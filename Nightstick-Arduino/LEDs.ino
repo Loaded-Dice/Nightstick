@@ -22,7 +22,7 @@ if((cfg.ledMode == LED_STATIC || cfg.ledMode == LED_TRAIL ) && ledModeLast != cf
       case LED_ANI: ani_main();  break;
       case LED_FIRE: make_fire();  break;
       case LED_BATT: ledBatt();  break;
-      case LED_BLE:  break;
+      case LED_BLE: bleAni(); break;
       case LED_TEST:   break;
       default:  break; 
     }

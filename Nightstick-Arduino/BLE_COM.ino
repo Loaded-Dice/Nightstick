@@ -4,19 +4,19 @@ void setup_BLE_COM(){
 
   Bluefruit.begin();
   Bluefruit.setTxPower(4);    // Check bluefruit.h for supported values
-  Bluefruit.setName("Nightstick"); // useful testing with multiple central connections
+  
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   Bluefruit.Advertising.setSlowCallback(adv_slow_callback);
   Bluefruit.Advertising.setStopCallback(adv_stop_callback);
-
-  bledis.setManufacturer("Marlon Graeber");
-  //bledis.setModel(cfg.bleName);
-
+  
+  bledis.setManufacturer("bledis.setManufacturer-TEST");
+  bledis.setModel("bledis.setModel-TEST");
   bledis.begin();// Configure and Start Device Information Service
-  bleuart.begin();// Configure and Start BLE Uart Service
+  
   blebas.begin();// Start BLE Battery Service
   blebas.write(100); // set battery percentage (int)
+  bleuart.begin();// Configure and Start BLE Uart Service
 
 }
 
@@ -34,8 +34,12 @@ void startBLE(void){
 
   Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
   Bluefruit.Advertising.addTxPower();
+  
+  
   Bluefruit.Advertising.addService(bleuart);// Include bleuart 128-bit uuid
-  Bluefruit.ScanResponse.addName();
+  Bluefruit.setName("Nightstick"); // useful testing with multiple central connections
+  Bluefruit.Advertising.addName();
+  Bluefruit.ScanResponse.addName(); //"Bluefruit.ScanResponse.addName"
   Bluefruit.Advertising.restartOnDisconnect(false); // Enable auto advertising if disconnected
   Bluefruit.Advertising.setInterval(32, 244);    // in unit of 0.625 ms --> Infos:  https://developer.apple.com/library/content/qa/qa1931/_index.html   
   Bluefruit.Advertising.setFastTimeout(BLE_FAST_TIMEOUT);      // number of seconds in fast mode
@@ -76,6 +80,8 @@ void stopAvertising(){
   else{
     msgln("Advertising already stopped");
   }
+  Bluefruit.Advertising.clearData();
+  Bluefruit.ScanResponse.clearData();
 }
 
 void connect_callback(uint16_t conn_handle){
@@ -112,14 +118,14 @@ void readBLE(){
     if (bleuart.available() > 0 && !newBleData && bleMode == BLE_CONN) {
         int n_bytes = bleuart.available();
         if(n_bytes > SIZE(comBufIn)){sendBLE("BLE Buffer overflow");}
+        bool stopRead = false;
         for(int i = 0; i < n_bytes; i++){ 
-          if(i < SIZE(comBufIn)){comBufIn[i] = bleuart.read();}  // overflow protection
-          else{bleuart.read(); }
+          char rc = bleuart.read();
+          if(i < SIZE(comBufIn) && !isControl(rc) && !stopRead){ comBufIn[i] = rc; }  // overflow protection
+          if(isControl(rc) && strlen(comBufIn) > 3){stopRead = true;}
           }
-        if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
-
+        //if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
         newBleData=true;
-
     }
 }
 
@@ -128,7 +134,19 @@ void sendBLE(const char* bleBuf){ bleuart.write(bleBuf, strlen(bleBuf)); bleuart
 
 void bleMsgHandler(){
   if(newBleData && bleMode == BLE_CONN){
-    cArrToUpper(comBufIn);
+ 
+//char comBufIn[BLE_BUFSIZE];
+//---------------------------- TEST MODE
+//  comBufOut[0] = '\0';
+//  strcpy(comBufOut,"Echo: ");
+//  strcat(comBufOut,comBufIn);
+//  //strcat(comBufOut,"\n");
+//  sendBLE(comBufOut);
+//  comBufIn[0]='\0';
+//  newBleData = false;
+//  return;
+//----------------------------
+   cArrToUpper(comBufIn);
 //    comBufOut[0] = '\0';
 //    strcpy(comBufOut,i2char((int)rawBat));
 //    strcat(comBufOut,"  ");
@@ -157,8 +175,8 @@ void bleMsgHandler(){
     else if(strcmp(comBufIn, "FLD-")    == 0){ledsChangeFld(-1);}    
     else if(strcmp(comBufIn, "FLD?")    == 0){sendBLE(getFldName()); sendBLE("\n");}    // cfg.trailsBmp   cfg.staticBmp  i2char(cfg.ledAni) i2char(cfg.palette) i2char(cfg.ledMode)
     else if(strcmp(comBufIn, "BATT?")   == 0){sendBLE(i2char(pBat)); sendBLE("\n");}
-    else if(strncmp (comBufIn, "STATIC,", 7) == 0 ){ strcpy(comBufIn, &comBufIn[7]); setBmp(FULLPATH_STATIC,comBufIn);}
-    else if(strncmp (comBufIn, "TRAIL,", 6)  == 0 ){ strcpy(comBufIn, &comBufIn[6]); setBmp(FULLPATH_TRAILS,comBufIn);}
+    else if(strncmp(comBufIn, "STATIC,", 7) == 0 ){ strcpy(comBufIn, &comBufIn[7]); setBmp(FULLPATH_STATIC,comBufIn);}
+    else if(strncmp(comBufIn, "TRAIL,", 6)  == 0 ){ strcpy(comBufIn, &comBufIn[6]); setBmp(FULLPATH_TRAILS,comBufIn);}
   
 
   
