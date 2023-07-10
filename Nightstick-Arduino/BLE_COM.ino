@@ -117,13 +117,16 @@ void readBLE(){
     
     if (bleuart.available() > 0 && !newBleData && bleMode == BLE_CONN) {
         int n_bytes = bleuart.available();
+        comBufIn[0] = '\0';
+        uint8_t n = 0;
         if(n_bytes > SIZE(comBufIn)){sendBLE("BLE Buffer overflow");}
         bool stopRead = false;
         for(int i = 0; i < n_bytes; i++){ 
           char rc = bleuart.read();
-          if(i < SIZE(comBufIn) && !isControl(rc) && !stopRead){ comBufIn[i] = rc; }  // overflow protection
-          if(isControl(rc) && strlen(comBufIn) > 3){stopRead = true;}
+          if(i < SIZE(comBufIn) && !isControl(rc) && !stopRead){ comBufIn[n] = rc; n++; }  // overflow protection
+          if(isControl(rc) && strlen(comBufIn) > 1){stopRead = true;}
           }
+          comBufIn[n] = '\0';
         //if(cArrEndsWith(comBufIn,'\r') || cArrEndsWith(comBufIn,'\n')){cArrTrimRight(comBufIn);}
         newBleData=true;
     }
@@ -155,32 +158,30 @@ void bleMsgHandler(){
 //    strcat(comBufOut,i2char(pBat));
 //    strcat(comBufOut,"  ");
 //    strcat(comBufOut,i2char(btnVal));
-    if(strcmp(comBufIn, "#HAND")  == 0){sendBLE("#SHAKE\n");}
-    else if(strcmp(comBufIn, "MODE+")   == 0){switchLedMode(1);}     
-    else if(strcmp(comBufIn, "MODE-")   == 0){switchLedMode(-1);}
-    else if(strcmp(comBufIn, "MODE?")   == 0){ sendBLE(i2char(cfg.ledMode)); sendBLE(","); sendBLE(modeNames[cfg.ledMode]); sendBLE("\n");} 
-    else if(strcmp(comBufIn, "PAL+")    == 0){nextPalette();} 
-    else if(strcmp(comBufIn, "PAL-")    == 0){lastPalette();} 
-    else if(strcmp(comBufIn, "PAL?")    == 0){sendBLE(i2char(cfg.palette));sendBLE(","); sendBLE(paletteNames[cfg.palette]); sendBLE("\n");} 
-    else if(strcmp(comBufIn, "ANI+")    == 0){nextAni();} 
-    else if(strcmp(comBufIn, "ANI-")    == 0){lastAni();}
-    else if(strcmp(comBufIn, "ANI?")    == 0){ sendBLE(i2char(cfg.ledAni));sendBLE(","); sendBLE(aniList[cfg.ledAni].aniName); sendBLE("\n");}
-    else if(strcmp(comBufIn, "BRIGHT+") == 0){changeBright(1); }
-    else if(strcmp(comBufIn, "BRIGHT-") == 0){changeBright(-1);}
-    else if(strcmp(comBufIn, "BRIGHT?") == 0){ sendBLE(i2char(cfg.bright)); sendBLE("\n");}
-    else if(strcmp(comBufIn, "BMP+")    == 0){ledsChangeBmp(1);}
-    else if(strcmp(comBufIn, "BMP-")    == 0){ledsChangeBmp(-1);}
-    else if(strcmp(comBufIn, "BMP?")    == 0){sendBLE(getBmpName()); sendBLE("\n");}
-    else if(strcmp(comBufIn, "FLD+")    == 0){ledsChangeFld(1);}
-    else if(strcmp(comBufIn, "FLD-")    == 0){ledsChangeFld(-1);}    
-    else if(strcmp(comBufIn, "FLD?")    == 0){sendBLE(getFldName()); sendBLE("\n");}    // cfg.trailsBmp   cfg.staticBmp  i2char(cfg.ledAni) i2char(cfg.palette) i2char(cfg.ledMode)
-    else if(strcmp(comBufIn, "BATT?")   == 0){sendBLE(i2char(pBat)); sendBLE("\n");}
-    else if(strncmp(comBufIn, "STATIC,", 7) == 0 ){ strcpy(comBufIn, &comBufIn[7]); setBmp(FULLPATH_STATIC,comBufIn);}
-    else if(strncmp(comBufIn, "TRAIL,", 6)  == 0 ){ strcpy(comBufIn, &comBufIn[6]); setBmp(FULLPATH_TRAILS,comBufIn);}
+    if(strcmp(comBufIn, "#HAND")  == 0){sendBLE("#SHAKE");}
+    else if(strcmp(comBufIn, "MODE+")   == 0){switchLedMode(1); sendBLE(modeNames[cfg.ledMode]);}     
+    else if(strcmp(comBufIn, "MODE-")   == 0){switchLedMode(-1);sendBLE(modeNames[cfg.ledMode]);}
+    else if(strcmp(comBufIn, "MODE?")   == 0){comBufOut[0] = '\0'; strcpy(comBufOut,i2char(cfg.ledMode)); strcat(comBufOut,","); strcat(comBufOut,modeNames[cfg.ledMode]);  sendBLE(comBufOut); } 
+    else if(strcmp(comBufIn, "PAL+")    == 0){sendBLE(paletteNames[nextPalette()]);}
+    else if(strcmp(comBufIn, "PAL-")    == 0){sendBLE(paletteNames[lastPalette()]);} 
+    else if(strcmp(comBufIn, "PAL?")    == 0){comBufOut[0] = '\0'; strcpy(comBufOut,i2char(cfg.palette)); strcat(comBufOut,","); strcat(comBufOut,paletteNames[cfg.palette]);  sendBLE(comBufOut);  } 
+    else if(strcmp(comBufIn, "ANI+")    == 0){nextAni(); sendBLE(aniList[cfg.ledAni].aniName);} 
+    else if(strcmp(comBufIn, "ANI-")    == 0){lastAni(); sendBLE(aniList[cfg.ledAni].aniName);}
+    else if(strcmp(comBufIn, "ANI?")    == 0){ comBufOut[0] = '\0'; strcpy(comBufOut,i2char(cfg.ledAni)); strcat(comBufOut,","); strcat(comBufOut,aniList[cfg.ledAni].aniName);  sendBLE(comBufOut); }
+    else if(strcmp(comBufIn, "BRIGHT+") == 0){changeBright(1); sendBLE(i2char(cfg.bright));}
+    else if(strcmp(comBufIn, "BRIGHT-") == 0){changeBright(-1); sendBLE(i2char(cfg.bright));}
+    else if(strcmp(comBufIn, "BRIGHT?") == 0){ sendBLE(i2char(cfg.bright)); }
+    else if(strcmp(comBufIn, "BMP+")    == 0){ledsChangeBmp(1); sendBLE(getBmpName());}
+    else if(strcmp(comBufIn, "BMP-")    == 0){ledsChangeBmp(-1); sendBLE(getBmpName());}
+    else if(strcmp(comBufIn, "BMP?")    == 0){sendBLE(getBmpName()); }
+    else if(strcmp(comBufIn, "FLD+")    == 0){ledsChangeFld(1);sendBLE(getFldName());}
+    else if(strcmp(comBufIn, "FLD-")    == 0){ledsChangeFld(-1);sendBLE(getFldName());}    
+    else if(strcmp(comBufIn, "FLD?")    == 0){sendBLE(getFldName());}    // cfg.trailsBmp   cfg.staticBmp  i2char(cfg.ledAni) i2char(cfg.palette) i2char(cfg.ledMode)
+    else if(strcmp(comBufIn, "BATT?")   == 0){sendBLE(i2char(pBat)); }
+    else if(strncmp(comBufIn, "STATIC,", 7) == 0 ){ strcpy(comBufIn, &comBufIn[7]); setBmp(FULLPATH_STATIC,comBufIn); cfg.ledMode = LED_STATIC;}
+    else if(strncmp(comBufIn, "TRAIL,", 6)  == 0 ){ strcpy(comBufIn, &comBufIn[6]); setBmp(FULLPATH_TRAILS,comBufIn); cfg.ledMode = LED_TRAIL; }
   
-
-  
-    else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-\n"); }
+    else{ sendBLE("#ECHO: ->");sendBLE(comBufIn); sendBLE("<-"); }
     comBufIn[0]='\0';
     newBleData = false;
   }

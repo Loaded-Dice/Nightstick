@@ -386,11 +386,11 @@ void paletteFade(){
   }
 }
 
-void nextPalette(){ newPaletteIdx(cfg.palette + 1);}
+int8_t nextPalette(){ return newPaletteIdx(cfg.palette + 1);}
 
-void lastPalette(){ newPaletteIdx(cfg.palette - 1);}
+int8_t lastPalette(){ return newPaletteIdx(cfg.palette - 1);}
 
-void newPaletteIdx(int8_t idxPalette){
+int8_t newPaletteIdx(int8_t idxPalette){
   iTargetPal = wrap_int(idxPalette, numPalettes);
   writeCfg();
   targetPal  = gradientPalettes[iTargetPal];
@@ -398,6 +398,7 @@ void newPaletteIdx(int8_t idxPalette){
     fadeNow = true; 
 
     }
+  return iTargetPal;
 }
 
 bool paletteEqualsPalette( CRGBPalette16& current, CRGBPalette16& target){

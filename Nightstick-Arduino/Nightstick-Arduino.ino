@@ -195,9 +195,11 @@ void setup(){
   start_FILTER_IMU();
   setup_BLE_COM();
   setup_LEDs();
-  startBLE(); // TEST
- // cfg.ledMode = LED_BATT;
-  //startBLE(); // debugging voltage readings & Vref
+
+  cfg.ledMode = LED_OFF;
+  //startBLE(); // TEST
+  
+
   //start_FFT();//
  // strip.setBrightness(25);
   //removeBmp("/Nightstick/BMPs/trails/elements/electric_tangle_wave.bmp");
